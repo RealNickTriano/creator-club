@@ -14,13 +14,13 @@ NOW = datetime(2026, 6, 7, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(
-    ("current_period_end", "expected"),
-    [
-        (None, True),  # open-ended (e.g. free tier) → always active
-        (NOW + timedelta(days=1), True),  # period still in the future
-        (NOW - timedelta(days=1), False),  # period has elapsed
-        (NOW, False),  # exactly at the boundary → not active
-    ],
+  ("current_period_end", "expected"),
+  [
+    (None, True),  # open-ended (e.g. free tier) → always active
+    (NOW + timedelta(days=1), True),  # period still in the future
+    (NOW - timedelta(days=1), False),  # period has elapsed
+    (NOW, False),  # exactly at the boundary → not active
+  ],
 )
 def test_membership_is_active(current_period_end: datetime | None, expected: bool) -> None:
-    assert membership_is_active(current_period_end, NOW) is expected
+  assert membership_is_active(current_period_end, NOW) is expected

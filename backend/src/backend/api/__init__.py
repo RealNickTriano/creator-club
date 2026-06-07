@@ -7,9 +7,9 @@ per-endpoint wiring.
 
 from fastapi import FastAPI
 
-from backend.api import service
+from backend.api import auth, service
 
-_routers = (service.router,)
+_routers = (service.router, auth.router)
 
 
 def register_routes(app: FastAPI) -> None:
