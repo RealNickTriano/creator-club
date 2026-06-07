@@ -9,6 +9,38 @@ FastAPI service for the tier-based entitlements API. Managed with
 uv sync
 ```
 
+Copy `.env.example` to `.env` and fill in the values (the app fails to start if
+any required setting is missing).
+
+## Database
+
+PostgreSQL runs in Docker. The app creates tables on startup (`create_all`).
+
+```bash
+# start postgres in the background
+docker compose up -d db
+
+# tail logs / check status
+docker compose logs -f db
+docker compose ps
+
+# stop it (keep data)
+docker compose down
+
+# stop and wipe the data volume (fresh DB next start)
+docker compose down -v
+```
+
+Connect with psql:
+
+```bash
+# via the container (no local psql needed)
+docker compose exec db psql -U app -d creatorclub
+
+# or from the host, if you have psql installed
+psql postgresql://app:app@localhost:5432/creatorclub
+```
+
 ## Run
 
 ```bash

@@ -20,5 +20,7 @@ class Settings(BaseSettings):
   google_oauth_client_secret: str
   google_redirect_uri: str
 
+  database_url: str
+
 
 settings = Settings()

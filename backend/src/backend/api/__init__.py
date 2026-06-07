@@ -1,18 +1,18 @@
-"""API route registration.
+"""API route registry.
 
-Each domain module exposes a ``router``; add it to ``_routers`` below and it is
-attached to the app by :func:`register_routes`. This keeps ``main.py`` free of
-per-endpoint wiring.
+Each feature owns its router; list them here and they're attached to the app by
+:func:`register_routes`. This keeps ``main.py`` free of per-endpoint wiring.
 """
 
 from fastapi import FastAPI
 
-from backend.api import auth, service
+from backend.auth.router import router as auth_router
+from backend.health.router import router as health_router
 
-_routers = (service.router, auth.router)
+_routers = (health_router, auth_router)
 
 
 def register_routes(app: FastAPI) -> None:
-  """Attach all API routers to the application."""
+  """Attach all feature routers to the application."""
   for router in _routers:
     app.include_router(router)

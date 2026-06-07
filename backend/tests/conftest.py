@@ -14,6 +14,9 @@ os.environ.setdefault("GOOGLE_OAUTH_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault(
   "GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback"
 )
+os.environ.setdefault(
+  "DATABASE_URL", "postgresql+asyncpg://app:app@localhost:5432/creatorclub"
+)
 
 import pytest
 from fastapi.testclient import TestClient
