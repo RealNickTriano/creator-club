@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import LogoutButton from "@/components/auth/LogoutButton";
-import UserCard from "@/components/auth/UserCard";
+import HomeShell from "@/components/home/HomeShell";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 export default function HomePage() {
@@ -23,14 +22,5 @@ export default function HomePage() {
     );
   }
 
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6">
-      <div className="space-y-1 text-center">
-        <p className="text-muted text-sm">Signed in as</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Home</h1>
-      </div>
-      <UserCard user={user} />
-      <LogoutButton />
-    </main>
-  );
+  return <HomeShell user={user}>{/* Main content goes here. */}</HomeShell>;
 }

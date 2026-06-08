@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import UserAvatar from "@/components/auth/UserAvatar";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 /**
@@ -29,18 +30,7 @@ export default function AuthNav() {
       href="/home"
       className="hover:bg-foreground/5 flex items-center gap-2.5 rounded-full py-1 pr-3 pl-1 text-sm font-medium transition-colors"
     >
-      {user.google_avatar_url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- remote avatar, no next/image domain config
-        <img
-          src={user.google_avatar_url}
-          alt=""
-          className="h-7 w-7 rounded-full object-cover"
-        />
-      ) : (
-        <span className="bg-foreground/10 flex h-7 w-7 items-center justify-center rounded-full text-xs">
-          {user.google_name.charAt(0).toUpperCase()}
-        </span>
-      )}
+      <UserAvatar user={user} size={28} />
       <span className="hidden sm:inline">{user.google_name}</span>
     </Link>
   );
