@@ -13,26 +13,26 @@ from backend.user import repository
 from backend.user.models import User
 
 
-def _default_name(email: str) -> str:
+def _default_name(google_email: str) -> str:
   """Fallback display name derived from the email local part."""
-  return email.split("@")[0]
+  return google_email.split("@")[0]
 
 
 async def create_user(
   session: AsyncSession,
   *,
   google_sub: str,
-  email: str,
-  name: str | None = None,
-  avatar_url: str | None = None,
+  google_email: str,
+  google_name: str | None = None,
+  google_avatar_url: str | None = None,
 ) -> User:
   """Create a user, applying a fallback display name when none is given."""
   return await repository.create(
     session,
     google_sub=google_sub,
-    email=email,
-    name=name or _default_name(email),
-    avatar_url=avatar_url,
+    google_email=google_email,
+    google_name=google_name or _default_name(google_email),
+    google_avatar_url=google_avatar_url,
   )
 
 
@@ -65,9 +65,9 @@ async def get_or_create_from_google(
   session: AsyncSession,
   *,
   google_sub: str,
-  email: str,
-  name: str | None,
-  avatar_url: str | None,
+  google_email: str,
+  google_name: str | None,
+  google_avatar_url: str | None,
 ) -> User:
   """Resolve the user for a Google login, creating one on first sign-in.
 
@@ -78,8 +78,8 @@ async def get_or_create_from_google(
     user = await create_user(
       session,
       google_sub=google_sub,
-      email=email,
-      name=name,
-      avatar_url=avatar_url,
+      google_email=google_email,
+      google_name=google_name,
+      google_avatar_url=google_avatar_url,
     )
   return await stamp_login(session, user)

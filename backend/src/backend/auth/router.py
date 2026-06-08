@@ -77,9 +77,9 @@ async def google_callback(
   user = await user_service.get_or_create_from_google(
     db,
     google_sub=google_user.id,
-    email=google_user.email or "",
-    name=google_user.display_name,
-    avatar_url=google_user.picture,
+    google_email=google_user.email or "",
+    google_name=google_user.display_name,
+    google_avatar_url=google_user.picture,
   )
 
   request.session["user_id"] = str(user.id)

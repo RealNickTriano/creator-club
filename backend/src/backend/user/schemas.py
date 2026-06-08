@@ -23,14 +23,14 @@ class PublicUser(BaseModel):
 
   id: uuid.UUID
   handle: str | None
-  name: str
+  google_name: str
   bio: str | None
-  avatar_url: str | None
+  google_avatar_url: str | None
 
 
 class PrivateUser(PublicUser):
   """A user viewing themselves — adds owner-only fields."""
 
-  email: str
+  google_email: str
   last_logged_in_at: datetime | None
   created_at: datetime

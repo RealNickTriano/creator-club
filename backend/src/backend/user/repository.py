@@ -9,19 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.user.models import User
 
-UPDATABLE_FIELDS = {"handle", "bio"}
 
 async def create_user(
   session: AsyncSession,
   *,
   google_sub: str,
-  email: str,
-  name: str,
-  avatar_url: str | None,
+  google_email: str,
+  google_name: str,
+  google_avatar_url: str | None,
 ) -> User:
   """Insert and return a new user with the given fields."""
   user = User(
-    google_sub=google_sub, email=email, name=name, avatar_url=avatar_url
+    google_sub=google_sub,
+    google_email=google_email,
+    google_name=google_name,
+    google_avatar_url=google_avatar_url,
   )
   session.add(user)
   await session.commit()
@@ -41,21 +43,13 @@ async def get_user_by_google_sub(session: AsyncSession, google_sub: str) -> User
   """Return the user with this Google subject id, or ``None``."""
   return await session.scalar(select(User).where(User.google_sub == google_sub))
 
-async def update_user(session: AsyncSession, user: User, **fields: object) -> User:
-  """Apply a partial update to ``user`` and persist it.
-
-  Only fields in :data:`_UPDATABLE_FIELDS` may be set; passing any other key
-  raises ``ValueError`` so identity columns can't be mutated by accident.
-  """
-  unknown = set(fields) - _UPDATABLE_FIELDS
-  if unknown:
-    raise ValueError(f"Cannot update fields: {', '.join(sorted(unknown))}")
-
-  for key, value in fields.items():
-    setattr(user, key, value)
+async def update_user(session: AsyncSession, user: User) -> User:
+  """Persist ``user``, replacing the stored row with this object's state."""
+  
+  merged = await session.merge(user)
   await session.commit()
-  await session.refresh(user)
-  return user
+  await session.refresh(merged)
+  return merged
 
 
 async def update_last_login(
