@@ -60,8 +60,8 @@ async def google_callback(
 ) -> RedirectResponse:
   """Handle Google's callback: verify, persist the user, start a session.
 
-  Stores the user id in the signed session cookie and redirects back to the
-  frontend, which then loads the current user from ``/auth/me``.
+  Stores the user id in the signed session cookie and redirects to the
+  frontend's /home, which loads the current user from ``/auth/me``.
   """
   async with google_sso:
     try:
@@ -85,7 +85,7 @@ async def google_callback(
   )
 
   request.session["user_id"] = str(user.id)
-  return RedirectResponse(url=settings.frontend_url)
+  return RedirectResponse(url=f"{settings.frontend_url.rstrip('/')}/home")
 
 
 @router.get("/me", response_model=PrivateUser)

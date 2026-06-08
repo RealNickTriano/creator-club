@@ -1,13 +1,22 @@
+"use client";
+
+import Link from "next/link";
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
+
 /**
- * Primary CTA: the "Join now" pill. On hover the pill eases wider and an arrow
+ * Primary CTA. Signed out it invites you to "Join now" (→ /login); signed in it
+ * becomes "Go to home" (→ /home). On hover the pill eases wider and an arrow
  * slides in from the label. The outer anchor stays put so :hover can't
  * oscillate; the inner span does the animating.
  */
 export default function JoinButton() {
+  const { user } = useCurrentUser();
+  const signedIn = !!user;
+
   return (
-    <a href="#" className="group inline-block">
+    <Link href={signedIn ? "/home" : "/login"} className="group inline-block">
       <span className="bg-foreground text-background flex transform-gpu items-center rounded-full px-6 py-3.5 text-base font-medium shadow-lg transition-[padding] duration-300 ease-out group-hover:pr-8 group-hover:pl-7">
-        Join now
+        {signedIn ? "Go to home" : "Join now"}
         {/* Collapsed to zero width until hover, then expands + slides in. */}
         <span className="ml-0 flex w-0 -translate-x-1 items-center overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:ml-2 group-hover:w-5 group-hover:translate-x-0 group-hover:opacity-100">
           <svg
@@ -24,6 +33,6 @@ export default function JoinButton() {
           </svg>
         </span>
       </span>
-    </a>
+    </Link>
   );
 }
