@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BrandLoader from "@/components/brand/BrandLoader";
+import HomeGreeting from "@/components/home/HomeGreeting";
 import HomeShell from "@/components/home/HomeShell";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
@@ -19,5 +20,13 @@ export default function HomePage() {
     return <BrandLoader />;
   }
 
-  return <HomeShell user={user}>{/* Main content goes here. */}</HomeShell>;
+  const firstName = user.google_name.split(" ")[0];
+
+  return (
+    <HomeShell user={user}>
+      <div className="max-w-3xl">
+        <HomeGreeting name={firstName} />
+      </div>
+    </HomeShell>
+  );
 }
