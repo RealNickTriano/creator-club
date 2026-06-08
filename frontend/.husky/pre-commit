@@ -1,0 +1,2 @@
+# Hooks run from the git root; the frontend is a subdirectory.
+cd frontend && npx --no-install lint-staged

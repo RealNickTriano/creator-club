@@ -1,0 +1,3 @@
+# Normalize line endings to LF, matching .editorconfig (end_of_line = lf).
+# Overrides any local core.autocrlf setting so checkouts stay LF on all platforms.
+* text=auto eol=lf
