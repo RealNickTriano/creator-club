@@ -21,7 +21,7 @@ export default function HomeShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+    <div className="animate-fade-in flex h-dvh flex-col overflow-hidden md:flex-row">
       <MobileTopBar onOpen={() => setMobileOpen(true)} />
       <Sidebar user={user} />
       <MobileSidebar

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import BrandLoader from "@/components/brand/BrandLoader";
 import HomeShell from "@/components/home/HomeShell";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
@@ -15,11 +16,7 @@ export default function HomePage() {
   }, [loading, error, user, router]);
 
   if (loading || !user) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center px-6">
-        <p className="text-muted text-sm">Loading…</p>
-      </main>
-    );
+    return <BrandLoader />;
   }
 
   return <HomeShell user={user}>{/* Main content goes here. */}</HomeShell>;
