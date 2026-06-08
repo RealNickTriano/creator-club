@@ -1,8 +1,14 @@
 """Shared pytest fixtures.
 
-As the app grows, this is where API tests will override dependencies — e.g.
+Repository tests run against a throwaway PostgreSQL instance started in a Docker
+container by ``testcontainers`` (see :func:`postgres_container`). The container
+is created once per test session and torn down at the end; each test gets a
+freshly-built schema, so the suite is fully self-contained and never touches a
+developer's real database.
+
+As the app grows, this is also where API tests will override dependencies — e.g.
 ``app.dependency_overrides[get_current_user]`` / ``[get_db]`` — to swap in fake
-users and sessions instead of running real OAuth or hitting Postgres.
+users and sessions instead of running real OAuth.
 """
 
 import os
@@ -14,27 +20,24 @@ os.environ.setdefault("GOOGLE_OAUTH_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault(
   "GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback"
 )
+# Unused by the repository tests (they point at the container below), but the
+# app's config still requires it to import.
 os.environ.setdefault(
   "DATABASE_URL", "postgresql+asyncpg://app:app@localhost:5432/creatorclub"
 )
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 
-import asyncpg
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import make_url
+from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from testcontainers.postgres import PostgresContainer
 
 from backend.db import Base
 from backend.main import app
-
-# A dedicated test database derived from the configured one, so repository
-# tests build their own schema and never read or mutate real data.
-_DB_URL = make_url(os.environ["DATABASE_URL"])
-_TEST_DB_NAME = f"{_DB_URL.database or 'creatorclub'}_test"
-TEST_DATABASE_URL = _DB_URL.set(database=_TEST_DB_NAME)
 
 
 @pytest.fixture
@@ -43,42 +46,35 @@ def client() -> TestClient:
   return TestClient(app)
 
 
-async def _ensure_test_database() -> None:
-  """Create the test database if it doesn't already exist (idempotent).
+@pytest.fixture(scope="session")
+def postgres_container() -> Iterator[PostgresContainer]:
+  """Start a disposable PostgreSQL container for the whole test session.
 
-  ``CREATE DATABASE`` can't run inside a transaction, so this uses a raw
-  asyncpg connection to the ``postgres`` maintenance database rather than
-  SQLAlchemy.
+  Pinned to the same image as ``docker-compose.yml`` so tests exercise the same
+  Postgres version as local/dev runs.
   """
-  admin = await asyncpg.connect(
-    host=_DB_URL.host,
-    port=_DB_URL.port,
-    user=_DB_URL.username,
-    password=_DB_URL.password,
-    database="postgres",
+  with PostgresContainer("postgres:17") as postgres:
+    yield postgres
+
+
+@pytest.fixture(scope="session")
+def test_database_url(postgres_container: PostgresContainer) -> URL:
+  """The container's connection URL, normalised to the async (asyncpg) driver."""
+  return make_url(postgres_container.get_connection_url()).set(
+    drivername="postgresql+asyncpg"
   )
-  try:
-    exists = await admin.fetchval(
-      "select 1 from pg_database where datname = $1", _TEST_DB_NAME
-    )
-    if not exists:
-      await admin.execute(f'CREATE DATABASE "{_TEST_DB_NAME}"')
-  finally:
-    await admin.close()
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession]:
-  """An async session against an isolated test database.
+async def db_session(test_database_url: URL) -> AsyncGenerator[AsyncSession]:
+  """An async session against the containerised database.
 
-  Tables are (re)created from the ORM metadata before each test and dropped
-  afterwards, so every test starts empty and nothing leaks between tests — or
-  into the real ``creatorclub`` database.
+  The schema is (re)created from the ORM metadata before each test and dropped
+  afterwards, so every test starts from empty tables and nothing leaks between
+  tests.
   """
-  await _ensure_test_database()
-  engine = create_async_engine(TEST_DATABASE_URL)
+  engine = create_async_engine(test_database_url)
   async with engine.begin() as conn:
-    await conn.run_sync(Base.metadata.drop_all)
     await conn.run_sync(Base.metadata.create_all)
   try:
     async with AsyncSession(engine, expire_on_commit=False) as session:
