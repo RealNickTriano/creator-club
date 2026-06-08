@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Formatting & linting…",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); [ -z \"$f\" ] && exit 0; fe=\"${f%%/frontend/*}/frontend\"; case \"$f\" in \"$fe\"/*) ;; *) exit 0 ;; esac; cd \"$fe\" || exit 0; npx prettier --write --ignore-unknown \"$f\" >/dev/null 2>&1 || true; case \"$f\" in *.js|*.jsx|*.ts|*.tsx) npx eslint --fix \"$f\" 2>&1 || true ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
