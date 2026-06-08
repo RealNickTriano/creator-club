@@ -1,56 +1,29 @@
 "use client";
 
+import { BRAND_GRADIENT } from "@/lib/brand";
 import { useTheme } from "@/lib/hooks/useTheme";
 
+/**
+ * Brand-gradient pill switch: a track with a gradient knob that slides right in
+ * dark mode. Flips light ⇄ dark and persists the choice via the theme hook.
+ */
 export default function ThemeToggle() {
-  const { toggle } = useTheme();
+  const { theme, toggle } = useTheme();
+  const dark = theme === "dark";
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle theme"
-      className="border-border text-foreground hover:bg-foreground/5 focus-visible:ring-foreground focus-visible:ring-offset-background inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      role="switch"
+      aria-checked={dark}
+      aria-label="Toggle dark theme"
+      className="border-border bg-foreground/10 focus-visible:ring-foreground focus-visible:ring-offset-background relative h-7 w-12 cursor-pointer rounded-full border p-0 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-white/10"
     >
-      {/* Moon in light mode (click → dark); sun in dark mode (click → light).
-          Visibility is CSS-driven so it stays correct without client state. */}
-      <MoonIcon className="h-4 w-4 dark:hidden" />
-      <SunIcon className="hidden h-4 w-4 dark:block" />
+      <span
+        className="absolute top-1 left-1 h-5 w-5 rounded-full shadow-sm transition-transform duration-300 ease-out dark:translate-x-5"
+        style={{ backgroundImage: BRAND_GRADIENT }}
+      />
     </button>
-  );
-}
-
-function SunIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-    </svg>
-  );
-}
-
-function MoonIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
   );
 }

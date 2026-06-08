@@ -4,28 +4,40 @@
    instead of the OS media query, so the toggle can override the preference. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Map semantic tokens onto Tailwind utilities (bg-background, text-foreground…) */
+/* Map semantic tokens onto Tailwind utilities (bg-background, text-foreground…)
+   and point the default sans stack at Geist. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-soft: var(--foreground-soft);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
 }
 
-/* Light theme: white surface, near-black ink */
+/* Light theme: near-white surface, near-black ink. */
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --muted: #6b6b6b;
-  --border: #e5e5e5;
+  --background: #fbfbfd;
+  --foreground: #18181b;
+  --foreground-soft: #4b4b53;
+  --muted: #8a8a93;
+  --border: rgba(24, 24, 27, 0.1);
 }
 
-/* Dark theme: applied via the `dark` class on <html>. The pre-paint script in
-   the root layout resolves the initial theme (stored choice or OS preference)
-   before the page renders, so there's no flash. */
+/* Dark theme: deep base with light type, applied via the `dark` class on
+   <html>. The pre-paint script in the root layout resolves the initial theme
+   (stored choice or OS preference) before render, so there's no flash. */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --muted: #a1a1a1;
-  --border: #262626;
+  --background: #0c0c10;
+  --foreground: #f4f4f6;
+  --foreground-soft: #b6b6bf;
+  --muted: #72727b;
+  --border: rgba(255, 255, 255, 0.15);
+}
+
+/* Ease the surface + ink across theme toggles for a calm, premium feel. */
+body {
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
 }

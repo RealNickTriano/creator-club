@@ -42,6 +42,18 @@ Keep `app/` thin: route files wire data + components together. Real UI lives in
 - Default to Server Components; add `"use client"` only when a component needs
   interactivity, state, or browser APIs.
 
+## Styling (Tailwind)
+
+- **Prefer the preset scale over arbitrary values.** Reach for the named utility
+  steps — `shadow-md`, `text-lg`, `gap-3`, `max-w-md`, `duration-300`, `ease-out`
+  — instead of bracketed literals like `shadow-[0_8px_24px_...]`, `text-[15px]`,
+  or `gap-2.75`. The presets keep spacing/typography consistent and readable; if
+  a value looks "almost" right, round to the nearest step.
+- **Reserve arbitrary values (`[...]`) for genuinely custom needs** the scale
+  can't express — e.g. fluid display type (`text-[clamp(52px,11vw,168px)]`) or a
+  specific display line-height. When you use one, it should be a deliberate
+  exception, not a shortcut around the scale.
+
 ## API calls
 
 - Every call to the backend goes through a function in `lib/api/`, grouped by
