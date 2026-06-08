@@ -1,30 +1,22 @@
 """User repository — database operations only, no business logic."""
 
 import uuid
-from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.user.models import User
+from backend.user.schemas import NewUser
 
 
-async def create_user(
-  session: AsyncSession,
-  *,
-  google_sub: str,
-  google_email: str,
-  google_name: str,
-  google_avatar_url: str | None,
-) -> User:
-  """Insert and return a new user with the given fields."""
-  user = User(
-    google_sub=google_sub,
-    google_email=google_email,
-    google_name=google_name,
-    google_avatar_url=google_avatar_url,
-  )
+async def create_user(session: AsyncSession, new_user: NewUser) -> User:
+  """Insert and return a new user from the given creation data.
+
+  Persistence only: ``new_user`` is expected to be fully resolved (e.g. with a
+  display name already filled in) — that's the service layer's job.
+  """
+  user = User(**new_user.model_dump())
   session.add(user)
   await session.commit()
   await session.refresh(user)

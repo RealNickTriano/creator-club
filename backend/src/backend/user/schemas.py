@@ -1,19 +1,39 @@
 """Pydantic schemas for the user-facing API shape.
 
-Two audiences, layered so the public field list lives in one place:
+Read side — two audiences, layered so the public field list lives in one place:
 
 * :class:`PublicUser` — what any authenticated viewer may see (e.g. on a
   creator profile).
 * :class:`PrivateUser` — the same, plus owner-only fields, returned only when
   a user is viewing themselves.
 
-The ORM's ``google_sub`` appears in neither, so it can never reach the wire.
+Write side:
+
+* :class:`NewUser` — the inputs needed to create a user (the identity Google
+  hands us at sign-in).
+
+The ORM's ``google_sub`` appears in neither read schema, so it can never reach
+the wire — but it *is* a creation input, hence its presence on :class:`NewUser`.
 """
 
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
+
+
+class NewUser(BaseModel):
+  """Fields needed to create a user, sourced from the Google profile.
+
+  ``google_name`` and ``google_avatar_url`` are optional because Google may
+  omit them; the service derives a fallback display name when ``google_name``
+  is ``None``.
+  """
+
+  google_sub: str
+  google_email: str
+  google_name: str | None = None
+  google_avatar_url: str | None = None
 
 
 class PublicUser(BaseModel):
@@ -23,7 +43,7 @@ class PublicUser(BaseModel):
 
   id: uuid.UUID
   handle: str | None
-  google_name: str
+  google_name: str | None
   bio: str | None
   google_avatar_url: str | None
 

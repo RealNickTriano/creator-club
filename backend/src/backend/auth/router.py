@@ -12,7 +12,7 @@ from backend.config import settings
 from backend.db import get_db
 from backend.user import service as user_service
 from backend.user.models import User
-from backend.user.schemas import PrivateUser
+from backend.user.schemas import NewUser, PrivateUser
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,10 +76,12 @@ async def google_callback(
 
   user = await user_service.get_or_create_from_google(
     db,
-    google_sub=google_user.id,
-    google_email=google_user.email or "",
-    google_name=google_user.display_name,
-    google_avatar_url=google_user.picture,
+    NewUser(
+      google_sub=google_user.id,
+      google_email=google_user.email or "",
+      google_name=google_user.display_name,
+      google_avatar_url=google_user.picture,
+    ),
   )
 
   request.session["user_id"] = str(user.id)

@@ -11,43 +11,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.user import repository
 from backend.user.models import User
+from backend.user.schemas import NewUser
 
 
-def _default_name(google_email: str) -> str:
-  """Fallback display name derived from the email local part."""
-  return google_email.split("@")[0]
-
-
-async def create_user(
-  session: AsyncSession,
-  *,
-  google_sub: str,
-  google_email: str,
-  google_name: str | None = None,
-  google_avatar_url: str | None = None,
-) -> User:
-  """Create a user, applying a fallback display name when none is given."""
-  return await repository.create(
-    session,
-    google_sub=google_sub,
-    google_email=google_email,
-    google_name=google_name or _default_name(google_email),
-    google_avatar_url=google_avatar_url,
-  )
+async def create_user(session: AsyncSession, new_user: NewUser) -> User:
+  """Create a user. A missing Google display name is left ``None``."""
+  return await repository.create_user(session, new_user)
 
 
 async def get_user_by_id(
   session: AsyncSession, user_id: uuid.UUID
 ) -> User | None:
   """Return the user with this id, or ``None``."""
-  return await repository.get_by_id(session, user_id)
+  return await repository.get_user_by_id(session, user_id)
 
 
 async def get_user_by_google_sub(
   session: AsyncSession, google_sub: str
 ) -> User | None:
   """Return the user for this Google subject id, or ``None``."""
-  return await repository.get_by_google_sub(session, google_sub)
+  return await repository.get_user_by_google_sub(session, google_sub)
 
 
 async def stamp_login(session: AsyncSession, user: User) -> User:
@@ -58,28 +41,17 @@ async def stamp_login(session: AsyncSession, user: User) -> User:
 
 async def delete_user(session: AsyncSession, user: User) -> None:
   """Delete the user from the database."""
-  await repository.delete(session, user)
+  await repository.delete_user(session, user)
 
 
 async def get_or_create_from_google(
-  session: AsyncSession,
-  *,
-  google_sub: str,
-  google_email: str,
-  google_name: str | None,
-  google_avatar_url: str | None,
+  session: AsyncSession, new_user: NewUser
 ) -> User:
   """Resolve the user for a Google login, creating one on first sign-in.
 
   New users get no handle (chosen later); every login stamps the timestamp.
   """
-  user = await get_user_by_google_sub(session, google_sub)
+  user = await get_user_by_google_sub(session, new_user.google_sub)
   if user is None:
-    user = await create_user(
-      session,
-      google_sub=google_sub,
-      google_email=google_email,
-      google_name=google_name,
-      google_avatar_url=google_avatar_url,
-    )
+    user = await create_user(session, new_user)
   return await stamp_login(session, user)

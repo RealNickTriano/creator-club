@@ -12,30 +12,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.user import repository
 from backend.user.models import User
+from backend.user.schemas import NewUser
 
 
-def _new_user_kwargs(**overrides: object) -> dict[str, object]:
-  """Valid ``create_user`` kwargs, unique per call to avoid UNIQUE clashes."""
+def _new_user(**overrides: object) -> NewUser:
+  """A valid ``NewUser``, unique per call to avoid UNIQUE clashes."""
   token = uuid.uuid4().hex
-  kwargs: dict[str, object] = {
+  data: dict[str, object] = {
     "google_sub": f"sub-{token}",
     "google_email": f"{token}@example.com",
     "google_name": "Ada Lovelace",
     "google_avatar_url": "https://example.com/ada.png",
   }
-  kwargs.update(overrides)
-  return kwargs
+  data.update(overrides)
+  return NewUser(**data)  # type: ignore[arg-type]
 
 
 async def test_create_user_persists_and_returns(db_session: AsyncSession) -> None:
-  kwargs = _new_user_kwargs()
-  user = await repository.create_user(db_session, **kwargs)  # type: ignore[arg-type]
+  new_user = _new_user()
+  user = await repository.create_user(db_session, new_user)
 
   assert isinstance(user.id, uuid.UUID)
-  assert user.google_sub == kwargs["google_sub"]
-  assert user.google_email == kwargs["google_email"]
-  assert user.google_name == kwargs["google_name"]
-  assert user.google_avatar_url == kwargs["google_avatar_url"]
+  assert user.google_sub == new_user.google_sub
+  assert user.google_email == new_user.google_email
+  assert user.google_name == new_user.google_name
+  assert user.google_avatar_url == new_user.google_avatar_url
   # Server default is populated after the post-insert refresh.
   assert user.created_at is not None
   # Fields not set at creation time.
@@ -45,14 +46,18 @@ async def test_create_user_persists_and_returns(db_session: AsyncSession) -> Non
 
 
 async def test_create_user_allows_null_avatar(db_session: AsyncSession) -> None:
-  user = await repository.create_user(
-    db_session, **_new_user_kwargs(google_avatar_url=None)  # type: ignore[arg-type]
-  )
+  user = await repository.create_user(db_session, _new_user(google_avatar_url=None))
   assert user.google_avatar_url is None
 
 
+async def test_create_user_allows_null_name(db_session: AsyncSession) -> None:
+  """A missing Google display name is stored as NULL, not defaulted."""
+  user = await repository.create_user(db_session, _new_user(google_name=None))
+  assert user.google_name is None
+
+
 async def test_get_user_by_id_found(db_session: AsyncSession) -> None:
-  created = await repository.create_user(db_session, **_new_user_kwargs())  # type: ignore[arg-type]
+  created = await repository.create_user(db_session, _new_user())
   found = await repository.get_user_by_id(db_session, created.id)
   assert found is not None
   assert found.id == created.id
@@ -63,9 +68,9 @@ async def test_get_user_by_id_missing_returns_none(db_session: AsyncSession) -> 
 
 
 async def test_get_user_by_google_sub_found(db_session: AsyncSession) -> None:
-  kwargs = _new_user_kwargs()
-  created = await repository.create_user(db_session, **kwargs)  # type: ignore[arg-type]
-  found = await repository.get_user_by_google_sub(db_session, kwargs["google_sub"])  # type: ignore[arg-type]
+  new_user = _new_user()
+  created = await repository.create_user(db_session, new_user)
+  found = await repository.get_user_by_google_sub(db_session, new_user.google_sub)
   assert found is not None
   assert found.id == created.id
 
@@ -77,7 +82,7 @@ async def test_get_user_by_google_sub_missing_returns_none(
 
 
 async def test_delete_user_removes_row(db_session: AsyncSession) -> None:
-  user = await repository.create_user(db_session, **_new_user_kwargs())  # type: ignore[arg-type]
+  user = await repository.create_user(db_session, _new_user())
   user_id = user.id
 
   await repository.delete_user(db_session, user)
@@ -86,7 +91,7 @@ async def test_delete_user_removes_row(db_session: AsyncSession) -> None:
 
 
 async def test_update_last_login_stamps_timestamp(db_session: AsyncSession) -> None:
-  user = await repository.create_user(db_session, **_new_user_kwargs())  # type: ignore[arg-type]
+  user = await repository.create_user(db_session, _new_user())
   assert user.last_logged_in_at is None
 
   when = datetime(2026, 6, 7, 12, 0, tzinfo=UTC)
@@ -100,7 +105,7 @@ async def test_update_last_login_stamps_timestamp(db_session: AsyncSession) -> N
 async def test_update_user_persists_changes(db_session: AsyncSession) -> None:
   """``update_user`` writes the given User's state back as-is (no field policy
   here — that lives in the service layer)."""
-  user = await repository.create_user(db_session, **_new_user_kwargs())  # type: ignore[arg-type]
+  user = await repository.create_user(db_session, _new_user())
 
   user.handle = "ada"
   user.bio = "Mathematician"
@@ -118,14 +123,14 @@ async def test_update_user_persists_changes(db_session: AsyncSession) -> None:
 
 async def test_update_user_replaces_detached_object(db_session: AsyncSession) -> None:
   """A fully-formed (detached) User with an existing id replaces that row."""
-  kwargs = _new_user_kwargs()
-  created = await repository.create_user(db_session, **kwargs)  # type: ignore[arg-type]
+  new_user = _new_user()
+  created = await repository.create_user(db_session, new_user)
   db_session.expunge(created)  # detach: simulate an object built elsewhere
 
   replacement = User(
     id=created.id,
-    google_sub=kwargs["google_sub"],  # type: ignore[arg-type]
-    google_email=kwargs["google_email"],  # type: ignore[arg-type]
+    google_sub=new_user.google_sub,
+    google_email=new_user.google_email,
     google_name="Augusta Ada King",
     google_avatar_url=None,
     handle="countess",
