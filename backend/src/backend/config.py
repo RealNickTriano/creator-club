@@ -22,5 +22,9 @@ class Settings(BaseSettings):
 
   database_url: str
 
+  # Signs the session cookie; the frontend origin the callback redirects back to.
+  session_secret: str
+  frontend_url: str = "http://localhost:5173"
+
 
 settings = Settings()
