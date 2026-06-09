@@ -12,8 +12,16 @@ export type CreatorPage = {
 /**
  * The "Your creator page" block: a section heading plus the owner card. Shows
  * the live card when the user has a page, or the setup CTA when they don't.
+ * `handle` is the user's own handle (null if unclaimed); the setup CTA uses it
+ * to either link to their page or prompt them to pick one first.
  */
-export default function CreatorPageSection({ page }: { page?: CreatorPage }) {
+export default function CreatorPageSection({
+  page,
+  handle = null,
+}: {
+  page?: CreatorPage;
+  handle?: string | null;
+}) {
   return (
     <section className="mt-8">
       <SectionHeading title="Your creator page" />
@@ -25,7 +33,7 @@ export default function CreatorPageSection({ page }: { page?: CreatorPage }) {
             postCount={page.postCount}
           />
         ) : (
-          <CreatorPageSetupCard />
+          <CreatorPageSetupCard handle={handle} />
         )}
       </div>
     </section>

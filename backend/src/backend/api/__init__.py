@@ -8,8 +8,9 @@ from fastapi import FastAPI
 
 from backend.auth.router import router as auth_router
 from backend.health.router import router as health_router
+from backend.user.router import router as user_router
 
-_routers = (health_router, auth_router)
+_routers = (health_router, auth_router, user_router)
 
 
 def register_routes(app: FastAPI) -> None:

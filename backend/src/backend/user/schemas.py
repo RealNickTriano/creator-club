@@ -11,6 +11,7 @@ Write side:
 
 * :class:`NewUser` — the inputs needed to create a user (the identity Google
   hands us at sign-in).
+* :class:`UpdateUser` — the owner-editable profile fields a user may PATCH.
 
 The ORM's ``google_sub`` appears in neither read schema, so it can never reach
 the wire — but it *is* a creation input, hence its presence on :class:`NewUser`.
@@ -19,7 +20,9 @@ the wire — but it *is* a creation input, hence its presence on :class:`NewUser
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+HANDLE_PATTERN = r"^[a-z0-9_]{3,30}$"
 
 
 class NewUser(BaseModel):
@@ -34,6 +37,19 @@ class NewUser(BaseModel):
   google_email: str
   google_name: str | None = None
   google_avatar_url: str | None = None
+
+
+class UpdateUser(BaseModel):
+  """Owner-editable profile fields.
+
+  PATCH semantics: only fields present in the request are applied; anything
+  omitted is left untouched. ``handle`` is constrained to a URL-safe slug
+  (3–30 lowercase letters, digits or underscores) since it routes to
+  ``/c/{handle}``.
+  """
+
+  handle: str | None = Field(default=None, pattern=HANDLE_PATTERN)
+  bio: str | None = None
 
 
 class PublicUser(BaseModel):

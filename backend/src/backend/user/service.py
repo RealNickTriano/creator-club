@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.user import repository
 from backend.user.models import User
-from backend.user.schemas import NewUser
+from backend.user.schemas import NewUser, UpdateUser
 
 
 async def create_user(session: AsyncSession, new_user: NewUser) -> User:
@@ -31,6 +31,20 @@ async def get_user_by_google_sub(
 ) -> User | None:
   """Return the user for this Google subject id, or ``None``."""
   return await repository.get_user_by_google_sub(session, google_sub)
+
+
+async def update_user(
+  session: AsyncSession, user: User, update: UpdateUser
+) -> User:
+  """Apply the provided profile fields to ``user`` and persist them.
+
+  Only fields actually present in ``update`` are written (PATCH semantics), so
+  omitting a field leaves the stored value alone. Persistence is delegated to
+  :func:`repository.update_user`.
+  """
+  for field, value in update.model_dump(exclude_unset=True).items():
+    setattr(user, field, value)
+  return await repository.update_user(session, user)
 
 
 async def stamp_login(session: AsyncSession, user: User) -> User:

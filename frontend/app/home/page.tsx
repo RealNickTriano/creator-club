@@ -34,9 +34,9 @@ export default function HomePage() {
           <CreatorSearch />
         </div>
 
-        <CreatorPageSection />
+        <CreatorPageSection handle={user.handle} />
 
-        <MembershipsSection memberships={[]} />
+        <MembershipsSection memberships={PLACEHOLDER_MEMBERSHIPS} />
       </div>
     </HomeShell>
   );

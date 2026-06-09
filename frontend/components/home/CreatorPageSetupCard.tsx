@@ -1,17 +1,30 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import SetHandleDialog from "@/components/home/SetHandleDialog";
 import { BRAND_GRADIENT } from "@/lib/brand";
+
+const CTA_CLASS =
+  "bg-foreground text-background inline-flex h-9 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90";
 
 /**
  * The "Your creator page" card shown when the signed-in user hasn't set up
  * their own page yet (mockup B). It's a dashed, gradient-washed CTA nudging
  * them to create one. Once their page is live, {@link CreatorPageLiveCard}
  * takes its place instead.
+ *
+ * Setting up a page needs a handle: when the user already has one, "Set up"
+ * takes them to their page at `/c/{handle}`; when they don't, it opens
+ * {@link SetHandleDialog} to claim one first.
  */
 export default function CreatorPageSetupCard({
-  href = "/settings",
+  handle = null,
 }: {
-  href?: string;
+  handle?: string | null;
 }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   return (
     <div
       className="border-border flex items-center gap-4 rounded-xl border border-dashed p-4"
@@ -33,12 +46,27 @@ export default function CreatorPageSetupCard({
           Pick a handle, add tiers, and start sharing work with members.
         </p>
       </div>
-      <Link
-        href={href}
-        className="bg-foreground text-background inline-flex h-9 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90"
-      >
-        Set up
-      </Link>
+
+      {handle ? (
+        <Link href={`/c/${handle}`} className={CTA_CLASS}>
+          Set up
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className={CTA_CLASS}
+        >
+          Set up
+        </button>
+      )}
+
+      {!handle && (
+        <SetHandleDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
