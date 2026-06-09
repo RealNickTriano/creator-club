@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/api/client";
-import type { User } from "@/types/user";
+import { apiFetch, ApiError } from "@/lib/api/client";
+import type { PublicUser, User } from "@/types/user";
 
 /**
  * Sets the current user's handle — the `@name` that becomes their creator page
@@ -12,4 +12,22 @@ export function setHandle(handle: string): Promise<User> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ handle }),
   });
+}
+
+/**
+ * Fetches the public profile for a handle, or `null` if no such user exists —
+ * used to decide whether a creator page at `/c/{handle}` should render or 404.
+ * `no-store` keeps the existence check fresh per request.
+ */
+export async function getUserByHandle(
+  handle: string,
+): Promise<PublicUser | null> {
+  try {
+    return await apiFetch<PublicUser>(`/user/${encodeURIComponent(handle)}`, {
+      cache: "no-store",
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
 }

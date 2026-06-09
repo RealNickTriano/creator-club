@@ -35,6 +35,10 @@ async def get_user_by_google_sub(session: AsyncSession, google_sub: str) -> User
   """Return the user with this Google subject id, or ``None``."""
   return await session.scalar(select(User).where(User.google_sub == google_sub))
 
+async def get_user_by_handle(session: AsyncSession, handle: str) -> User | None:
+  """Return the user with this handle, or ``None``."""
+  return await session.scalar(select(User).where(User.handle == handle))
+
 async def update_user(session: AsyncSession, user: User) -> User:
   """Persist ``user``, replacing the stored row with this object's state."""
   

@@ -28,7 +28,7 @@ export default function HomePage() {
 
   return (
     <HomeShell user={user}>
-      <div className="max-w-3xl">
+      <div className="mx-auto max-w-3xl">
         <HomeGreeting name={firstName} />
         <div className="mt-6">
           <CreatorSearch />

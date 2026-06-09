@@ -33,6 +33,17 @@ async def get_user_by_google_sub(
   return await repository.get_user_by_google_sub(session, google_sub)
 
 
+async def get_user_by_handle(
+  session: AsyncSession, handle: str
+) -> User | None:
+  """Return the user for this handle (case-insensitive), or ``None``.
+
+  Handles are stored lowercase, so a mixed-case handle from the URL is
+  normalized before the lookup.
+  """
+  return await repository.get_user_by_handle(session, handle.lower())
+
+
 async def update_user(
   session: AsyncSession, user: User, update: UpdateUser
 ) -> User:

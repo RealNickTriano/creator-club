@@ -58,3 +58,15 @@ async def test_update_user_only_touches_provided_fields(
   assert refreshed is not None
   assert refreshed.handle == "ada"
   assert refreshed.bio == "first"  # left untouched by the handle-only update
+
+
+async def test_get_user_by_handle_is_case_insensitive(
+  db_session: AsyncSession,
+) -> None:
+  """Handles are stored lowercase, so a mixed-case lookup still resolves."""
+  user = await repository.create_user(db_session, _new_user())
+  await service.update_user(db_session, user, UpdateUser(handle="ada"))
+
+  found = await service.get_user_by_handle(db_session, "ADA")
+  assert found is not None
+  assert found.id == user.id

@@ -81,6 +81,22 @@ async def test_get_user_by_google_sub_missing_returns_none(
   assert await repository.get_user_by_google_sub(db_session, "no-such-sub") is None
 
 
+async def test_get_user_by_handle_found(db_session: AsyncSession) -> None:
+  created = await repository.create_user(db_session, _new_user())
+  created.handle = "ada"
+  await repository.update_user(db_session, created)
+
+  found = await repository.get_user_by_handle(db_session, "ada")
+  assert found is not None
+  assert found.id == created.id
+
+
+async def test_get_user_by_handle_missing_returns_none(
+  db_session: AsyncSession,
+) -> None:
+  assert await repository.get_user_by_handle(db_session, "nobody") is None
+
+
 async def test_delete_user_removes_row(db_session: AsyncSession) -> None:
   user = await repository.create_user(db_session, _new_user())
   user_id = user.id
