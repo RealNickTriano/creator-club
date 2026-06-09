@@ -37,7 +37,7 @@ export default function CreatorPageSetupCard({
         href={href}
         className="bg-foreground text-background inline-flex h-9 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90"
       >
-        Set up →
+        Set up
       </Link>
     </div>
   );

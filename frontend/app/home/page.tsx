@@ -7,7 +7,9 @@ import CreatorPageSection from "@/components/home/CreatorPageSection";
 import CreatorSearch from "@/components/home/CreatorSearch";
 import HomeGreeting from "@/components/home/HomeGreeting";
 import HomeShell from "@/components/home/HomeShell";
+import MembershipsSection from "@/components/home/MembershipsSection";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
+import { PLACEHOLDER_MEMBERSHIPS } from "@/lib/placeholders/memberships";
 
 export default function HomePage() {
   const { user, loading, error } = useCurrentUser();
@@ -33,6 +35,8 @@ export default function HomePage() {
         </div>
 
         <CreatorPageSection />
+
+        <MembershipsSection memberships={[]} />
       </div>
     </HomeShell>
   );
