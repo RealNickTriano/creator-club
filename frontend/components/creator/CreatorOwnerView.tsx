@@ -1,13 +1,13 @@
 import CreatorHeader from "@/components/creator/CreatorHeader";
-import CreatorOwnerTabs from "@/components/creator/CreatorOwnerTabs";
+import CreatorTabs from "@/components/creator/CreatorTabs";
 import { PLACEHOLDER_POSTS } from "@/lib/placeholders/creator";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
 /**
  * The creator's own page: the header with owner controls, then tabs switching
- * between the manageable post feed and the membership tiers. Shown when the
- * signed-in user is this creator.
+ * between the manageable post feed, the membership tiers, and the profile
+ * editor. Shown when the signed-in user is this creator.
  */
 export default function CreatorOwnerView({
   creator,
@@ -20,7 +20,12 @@ export default function CreatorOwnerView({
     <div className="mx-auto max-w-2xl">
       <CreatorHeader creator={creator} />
       <div className="mt-8">
-        <CreatorOwnerTabs posts={PLACEHOLDER_POSTS} tiers={tiers} />
+        <CreatorTabs
+          creator={creator}
+          posts={PLACEHOLDER_POSTS}
+          tiers={tiers}
+          isOwner
+        />
       </div>
     </div>
   );

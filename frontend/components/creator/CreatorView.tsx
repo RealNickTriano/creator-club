@@ -34,7 +34,7 @@ export default function CreatorView({
   if (!user) {
     return (
       <main className="min-h-dvh px-6 py-10">
-        <CreatorViewerView creator={creator} />
+        <CreatorViewerView creator={creator} tiers={tiers} />
       </main>
     );
   }
@@ -47,7 +47,7 @@ export default function CreatorView({
       {isOwner ? (
         <CreatorOwnerView creator={creator} tiers={tiers} />
       ) : (
-        <CreatorViewerView creator={creator} />
+        <CreatorViewerView creator={creator} tiers={tiers} />
       )}
     </HomeShell>
   );

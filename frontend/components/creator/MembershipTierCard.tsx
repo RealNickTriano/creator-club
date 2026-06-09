@@ -2,15 +2,16 @@ import { formatTierPrice } from "@/lib/utils/price";
 import type { Tier } from "@/types/tier";
 
 /**
- * One tier in the owner's Memberships tab: name, price, and description (when
- * set), with an Edit control that hands the tier back via `onEdit`.
+ * One tier in the Memberships tab: name, price, and description (when set).
+ * Pass `onEdit` to show the owner's Edit control, which hands the tier back;
+ * without it the card is read-only (the viewer side).
  */
 export default function MembershipTierCard({
   tier,
   onEdit,
 }: {
   tier: Tier;
-  onEdit: (tier: Tier) => void;
+  onEdit?: (tier: Tier) => void;
 }) {
   return (
     <div className="border-border bg-background flex items-center gap-4 rounded-xl border p-4">
@@ -29,13 +30,15 @@ export default function MembershipTierCard({
           </p>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => onEdit(tier)}
-        className="border-border text-foreground hover:bg-foreground/5 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors"
-      >
-        Edit
-      </button>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={() => onEdit(tier)}
+          className="border-border text-foreground hover:bg-foreground/5 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors"
+        >
+          Edit
+        </button>
+      )}
     </div>
   );
 }

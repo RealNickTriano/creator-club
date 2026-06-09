@@ -9,13 +9,20 @@ import Modal from "@/components/ui/Modal";
 import type { Tier } from "@/types/tier";
 
 /**
- * The owner's Memberships tab: each tier with its price, plus edit / add-tier
- * controls — or the {@link CreatorTiersEmpty} nudge when there are no tiers
- * yet. "Add tier" and "Edit" open the same {@link TierForm} in a modal (blank
- * or prefilled); on success the route is refreshed so the server-fetched
- * ladder picks up the change.
+ * The Memberships tab: each tier with its price. With `canManage` (the owner)
+ * it adds edit / add-tier controls — or the {@link CreatorTiersEmpty} nudge
+ * when there are no tiers yet. "Add tier" and "Edit" open the same
+ * {@link TierForm} in a modal (blank or prefilled); on success the route is
+ * refreshed so the server-fetched ladder picks up the change. Without
+ * `canManage` (a viewer) the tiers render read-only.
  */
-export default function CreatorMembershipsList({ tiers }: { tiers: Tier[] }) {
+export default function CreatorMembershipsList({
+  tiers,
+  canManage = false,
+}: {
+  tiers: Tier[];
+  canManage?: boolean;
+}) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Tier | null>(null);
   const router = useRouter();
@@ -32,6 +39,25 @@ export default function CreatorMembershipsList({ tiers }: { tiers: Tier[] }) {
   function onSaved() {
     closeForm();
     router.refresh();
+  }
+
+  if (!canManage) {
+    return tiers.length === 0 ? (
+      <div className="border-border bg-background rounded-xl border border-dashed p-8 text-center">
+        <b className="text-foreground block text-sm font-semibold">
+          No membership tiers yet
+        </b>
+        <p className="text-foreground-soft mx-auto mt-1.5 max-w-sm text-sm">
+          This creator hasn&apos;t set up memberships yet — check back soon.
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {tiers.map((tier) => (
+          <MembershipTierCard key={tier.id} tier={tier} />
+        ))}
+      </div>
+    );
   }
 
   return (

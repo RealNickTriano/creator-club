@@ -11,6 +11,15 @@ export interface PublicUser {
   google_avatar_url: string | null;
 }
 
+/**
+ * Owner-editable profile fields for `PATCH /user` — omitted fields are left
+ * unchanged.
+ */
+export interface UpdateUserProfile {
+  handle?: string;
+  bio?: string | null;
+}
+
 /** The current authenticated user, as returned by `GET /auth/me`. */
 export interface User {
   id: string;
