@@ -4,6 +4,7 @@ import { useState } from "react";
 import Wordmark from "@/components/brand/Wordmark";
 import SidebarNav from "@/components/home/SidebarNav";
 import UserMenu from "@/components/home/UserMenu";
+import MenuIcon from "@/components/svg/MenuIcon";
 import type { User } from "@/types/user";
 
 /**
@@ -30,18 +31,7 @@ export default function Sidebar({ user }: { user: User }) {
           aria-expanded={!collapsed}
           className="text-foreground-soft hover:bg-foreground/5 hover:text-foreground focus-visible:ring-foreground focus-visible:ring-offset-background inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-5 w-5"
-          >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <MenuIcon className="h-5 w-5" />
         </button>
       </div>
 

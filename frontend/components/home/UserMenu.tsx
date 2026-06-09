@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/auth/UserAvatar";
+import LogOutIcon from "@/components/svg/LogOutIcon";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { logout } from "@/lib/api/auth";
 import type { User } from "@/types/user";
@@ -67,18 +68,7 @@ export default function UserMenu({
         disabled={pending}
         className="hover:bg-foreground/5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0"
-        >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-        </svg>
+        <LogOutIcon className="h-4 w-4 shrink-0" />
         {pending ? "Logging out…" : "Log out"}
       </button>
     </>

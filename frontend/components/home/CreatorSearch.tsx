@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import SearchIcon from "@/components/svg/SearchIcon";
 
 /**
  * The "find a creator" box. Submitting a handle routes to that creator's page
@@ -25,19 +26,7 @@ export default function CreatorSearch() {
       role="search"
       className="border-border focus-within:border-foreground/30 bg-background flex h-11 items-center gap-2 rounded-full border px-4 transition-colors"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        className="text-muted h-4 w-4 shrink-0"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
+      <SearchIcon className="text-muted h-4 w-4 shrink-0" />
       <input
         type="search"
         value={value}

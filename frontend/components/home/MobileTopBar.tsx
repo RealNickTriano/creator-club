@@ -1,6 +1,7 @@
 "use client";
 
 import Wordmark from "@/components/brand/Wordmark";
+import MenuIcon from "@/components/svg/MenuIcon";
 
 /** Mobile-only top bar: brand + a button that opens the full-screen menu. */
 export default function MobileTopBar({ onOpen }: { onOpen: () => void }) {
@@ -13,18 +14,7 @@ export default function MobileTopBar({ onOpen }: { onOpen: () => void }) {
         aria-label="Open menu"
         className="text-foreground-soft hover:bg-foreground/5 hover:text-foreground focus-visible:ring-foreground focus-visible:ring-offset-background inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="h-5 w-5"
-        >
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <MenuIcon className="h-5 w-5" />
       </button>
     </header>
   );
