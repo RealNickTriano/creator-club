@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { User } from "@/types/user";
+import type { PublicUser, User } from "@/types/user";
 
 /**
  * The user's Google avatar, falling back to their initial in a circle. Rendered
@@ -10,7 +10,7 @@ export default function UserAvatar({
   user,
   size = 32,
 }: {
-  user: User;
+  user: User | PublicUser;
   size?: number;
 }) {
   if (user.google_avatar_url) {
@@ -30,7 +30,7 @@ export default function UserAvatar({
       style={{ width: size, height: size }}
       className="bg-foreground/10 flex items-center justify-center rounded-full text-xs"
     >
-      {user.google_name.charAt(0).toUpperCase()}
+      {user.google_name?.charAt(0).toUpperCase()}
     </span>
   );
 }

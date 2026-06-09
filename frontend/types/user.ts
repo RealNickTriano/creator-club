@@ -16,7 +16,7 @@ export interface User {
   id: string;
   /** Chosen handle; null until the user picks one. */
   handle: string | null;
-  google_name: string;
+  google_name: string | null;
   bio: string | null;
   google_avatar_url: string | null;
   google_email: string;

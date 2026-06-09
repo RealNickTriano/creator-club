@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
+import CreatorView from "@/components/creator/CreatorView";
+import { getTiersByHandle } from "@/lib/api/tiers";
 import { getUserByHandle } from "@/lib/api/users";
 
 /**
- * A creator's public page at `/c/{handle}`. Resolves the handle against the
- * backend: renders the page when the user exists, or the 404 page when they
- * don't. For now it just shows the handle — a placeholder for the real creator
- * profile (bio, tiers, posts) to come.
+ * A creator's page at `/c/{handle}`. Resolves the handle and the tier ladder
+ * against the backend in parallel (404 if no such user), then hands off to
+ * {@link CreatorView}, which loads the current viewer and renders the owner or
+ * viewer experience inside the shell.
  */
 export default async function CreatorPage({
   params,
@@ -13,12 +15,11 @@ export default async function CreatorPage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const user = await getUserByHandle(handle);
-  if (!user) notFound();
+  const [creator, tiers] = await Promise.all([
+    getUserByHandle(handle),
+    getTiersByHandle(handle),
+  ]);
+  if (!creator) notFound();
 
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <p className="text-2xl font-semibold tracking-tight">@{user.handle}</p>
-    </main>
-  );
+  return <CreatorView creator={creator} tiers={tiers ?? []} />;
 }
