@@ -20,6 +20,7 @@ Next.js (App Router) + React + TypeScript + Tailwind CSS v4. The import alias
 app/                 Routes only (App Router). Pages, layouts, route handlers.
 components/          Reusable, presentational UI. One component per file.
   ui/                Generic primitives (Button, Input, Card, Modal).
+  svg/               Icon components (one per file). No inlined SVG elsewhere.
   <feature>/         Components specific to a feature, when not generic.
 lib/
   api/               API call functions, grouped by resource (one file each).
@@ -41,6 +42,10 @@ Keep `app/` thin: route files wire data + components together. Real UI lives in
   rather than copy-pasting.
 - Default to Server Components; add `"use client"` only when a component needs
   interactivity, state, or browser APIs.
+- **Never inline `<svg>` markup.** Every icon is its own component in
+  `components/svg/` (one per file), imported where needed. Single-color line
+  icons compose the shared `StrokeIcon` base and expose only a `className` for
+  sizing/color; reuse an existing icon before adding a new one.
 
 ## Styling (Tailwind)
 
