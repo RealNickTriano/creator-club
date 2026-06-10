@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import UserAvatar from "@/components/auth/UserAvatar";
 import SetHandleDialog from "@/components/home/SetHandleDialog";
-import { BRAND_GRADIENT } from "@/lib/brand";
+import type { User } from "@/types/user";
 
 const CTA_CLASS =
   "bg-foreground text-background inline-flex h-9 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90";
@@ -18,12 +19,9 @@ const CTA_CLASS =
  * takes them to their page at `/c/{handle}`; when they don't, it opens
  * {@link SetHandleDialog} to claim one first.
  */
-export default function CreatorPageSetupCard({
-  handle = null,
-}: {
-  handle?: string | null;
-}) {
+export default function CreatorPageSetupCard({ user }: { user: User }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const handle = user.handle;
 
   return (
     <div
@@ -33,11 +31,9 @@ export default function CreatorPageSetupCard({
           "linear-gradient(120deg, rgba(194,207,250,0.16), rgba(247,181,196,0.16))",
       }}
     >
-      <span
-        aria-hidden="true"
-        className="h-12 w-12 shrink-0 rounded-full shadow-sm"
-        style={{ backgroundImage: BRAND_GRADIENT }}
-      />
+      <span className="shrink-0">
+        <UserAvatar user={user} size={48} />
+      </span>
       <div className="min-w-0 flex-1">
         <b className="text-foreground text-sm font-semibold">
           Set up your creator page

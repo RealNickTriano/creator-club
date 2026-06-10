@@ -1,20 +1,41 @@
+import TierPill from "@/components/home/TierPill";
+import { BRAND_GRADIENT } from "@/lib/brand";
 import { formatTierPrice } from "@/lib/utils/price";
 import type { Tier } from "@/types/tier";
+
+/* The held card's brand-gradient border: the gradient fills the border box
+   while the theme background covers the padding box, leaving only the border
+   ring showing the gradient (theme-aware via `--background`). */
+const HELD_BORDER_STYLE: React.CSSProperties = {
+  backgroundImage: `linear-gradient(var(--background), var(--background)), ${BRAND_GRADIENT}`,
+  backgroundOrigin: "border-box",
+  backgroundClip: "padding-box, border-box",
+};
 
 /**
  * One tier in the Memberships tab: name, price, and description (when set).
  * Pass `onEdit` to show the owner's Edit control, which hands the tier back;
- * without it the card is read-only (the viewer side).
+ * without it the card is read-only (the viewer side). `held` marks the tier
+ * the viewer is currently subscribed to ("Your tier").
  */
 export default function MembershipTierCard({
   tier,
   onEdit,
+  held = false,
 }: {
   tier: Tier;
   onEdit?: (tier: Tier) => void;
+  held?: boolean;
 }) {
   return (
-    <div className="border-border bg-background flex items-center gap-4 rounded-xl border p-4">
+    <div
+      className={`flex items-center gap-4 rounded-xl p-4 ${
+        held
+          ? "border-2 border-transparent"
+          : "border-border bg-background border"
+      }`}
+      style={held ? HELD_BORDER_STYLE : undefined}
+    >
       <div className="min-w-0 flex-1">
         <p className="flex items-baseline gap-2">
           <span className="text-muted text-xs">
@@ -30,6 +51,7 @@ export default function MembershipTierCard({
           </p>
         )}
       </div>
+      {held && <TierPill name="Your tier" rank={tier.rank} />}
       {onEdit && (
         <button
           type="button"

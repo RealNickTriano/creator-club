@@ -14,14 +14,17 @@ import type { Tier } from "@/types/tier";
  * when there are no tiers yet. "Add tier" and "Edit" open the same
  * {@link TierForm} in a modal (blank or prefilled); on success the route is
  * refreshed so the server-fetched ladder picks up the change. Without
- * `canManage` (a viewer) the tiers render read-only.
+ * `canManage` (a viewer) the tiers render read-only, with `heldTierId`
+ * marking the tier the viewer currently holds.
  */
 export default function CreatorMembershipsList({
   tiers,
   canManage = false,
+  heldTierId = null,
 }: {
   tiers: Tier[];
   canManage?: boolean;
+  heldTierId?: string | null;
 }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Tier | null>(null);
@@ -54,7 +57,11 @@ export default function CreatorMembershipsList({
     ) : (
       <div className="space-y-3">
         {tiers.map((tier) => (
-          <MembershipTierCard key={tier.id} tier={tier} />
+          <MembershipTierCard
+            key={tier.id}
+            tier={tier}
+            held={tier.id === heldTierId}
+          />
         ))}
       </div>
     );

@@ -13,9 +13,12 @@ import type { PublicUser } from "@/types/user";
 export default function CreatorViewerView({
   creator,
   tiers,
+  heldTierId = null,
 }: {
   creator: PublicUser;
   tiers: Tier[];
+  /** The tier the viewer holds on this creator, marked in the Memberships tab. */
+  heldTierId?: string | null;
 }) {
   return (
     <div className="mx-auto max-w-2xl">
@@ -26,6 +29,7 @@ export default function CreatorViewerView({
           posts={PLACEHOLDER_POSTS}
           tiers={tiers}
           isOwner={false}
+          heldTierId={heldTierId}
         />
       </div>
     </div>

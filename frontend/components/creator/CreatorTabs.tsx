@@ -26,11 +26,14 @@ export default function CreatorTabs({
   posts,
   tiers,
   isOwner,
+  heldTierId = null,
 }: {
   creator: PublicUser;
   posts: CreatorPost[];
   tiers: Tier[];
   isOwner: boolean;
+  /** The tier the viewer holds on this creator, marked in the Memberships tab. */
+  heldTierId?: string | null;
 }) {
   const [active, setActive] = useState<Tab>("Posts");
   const tabs = isOwner ? TABS : VIEWER_TABS;
@@ -79,7 +82,11 @@ export default function CreatorTabs({
             </div>
           ))}
         {active === "Memberships" && (
-          <CreatorMembershipsList tiers={tiers} canManage={isOwner} />
+          <CreatorMembershipsList
+            tiers={tiers}
+            canManage={isOwner}
+            heldTierId={heldTierId}
+          />
         )}
         {active === "Profile" && isOwner && (
           <CreatorProfileForm creator={creator} />

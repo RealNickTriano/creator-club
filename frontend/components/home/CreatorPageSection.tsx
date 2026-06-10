@@ -1,6 +1,7 @@
 import CreatorPageLiveCard from "@/components/home/CreatorPageLiveCard";
 import CreatorPageSetupCard from "@/components/home/CreatorPageSetupCard";
 import SectionHeading from "@/components/home/SectionHeading";
+import type { User } from "@/types/user";
 
 /** The signed-in user's own creator page, once it exists. */
 export type CreatorPage = {
@@ -12,15 +13,15 @@ export type CreatorPage = {
 /**
  * The "Your creator page" block: a section heading plus the owner card. Shows
  * the live card when the user has a page, or the setup CTA when they don't.
- * `handle` is the user's own handle (null if unclaimed); the setup CTA uses it
- * to either link to their page or prompt them to pick one first.
+ * `user` is the signed-in user; the setup CTA shows their avatar and either
+ * links to their page or prompts them to pick a handle first.
  */
 export default function CreatorPageSection({
   page,
-  handle = null,
+  user,
 }: {
   page?: CreatorPage;
-  handle?: string | null;
+  user: User;
 }) {
   return (
     <section className="mt-8">
@@ -33,7 +34,7 @@ export default function CreatorPageSection({
             postCount={page.postCount}
           />
         ) : (
-          <CreatorPageSetupCard handle={handle} />
+          <CreatorPageSetupCard user={user} />
         )}
       </div>
     </section>

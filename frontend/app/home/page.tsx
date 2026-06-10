@@ -40,7 +40,7 @@ export default function HomePage() {
           <CreatorSearch />
         </div>
 
-        <CreatorPageSection handle={user.handle} />
+        <CreatorPageSection user={user} />
 
         <MembershipsSection memberships={activeMemberships} />
       </div>

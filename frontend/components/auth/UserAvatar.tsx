@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BRAND_GRADIENT } from "@/lib/brand";
 import type { PublicUser, User } from "@/types/user";
 
 /**
@@ -27,8 +28,14 @@ export default function UserAvatar({
 
   return (
     <span
-      style={{ width: size, height: size }}
-      className="bg-foreground/10 flex items-center justify-center rounded-full text-xs"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.45,
+        backgroundImage: BRAND_GRADIENT,
+      }}
+      // Fixed dark ink: the pastel gradient stays light in both themes.
+      className="flex items-center justify-center rounded-full font-medium text-zinc-900"
     >
       {user.google_name?.charAt(0).toUpperCase()}
     </span>

@@ -1,6 +1,6 @@
 import Link from "next/link";
+import UserAvatar from "@/components/auth/UserAvatar";
 import TierPill from "@/components/home/TierPill";
-import { BRAND_GRADIENT } from "@/lib/brand";
 import type { Membership } from "@/types/membership";
 
 /**
@@ -24,11 +24,9 @@ export default function MembershipCard({
       href={handle ? `/c/${handle}` : "#"}
       className="border-border bg-background hover:bg-foreground/5 flex items-center gap-3 rounded-xl border p-3.5 transition-colors"
     >
-      <span
-        aria-hidden="true"
-        className="h-10 w-10 shrink-0 rounded-full shadow-sm"
-        style={{ backgroundImage: BRAND_GRADIENT }}
-      />
+      <span className="shrink-0">
+        <UserAvatar user={creator} size={40} />
+      </span>
       <div className="min-w-0 flex-1">
         <b className="text-foreground block truncate text-sm font-semibold">
           {creatorName}
