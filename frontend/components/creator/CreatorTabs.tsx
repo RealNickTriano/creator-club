@@ -27,6 +27,8 @@ export default function CreatorTabs({
   tiers,
   isOwner,
   heldTierId = null,
+  canJoin = false,
+  onMembershipChange,
 }: {
   creator: PublicUser;
   posts: CreatorPost[];
@@ -34,6 +36,10 @@ export default function CreatorTabs({
   isOwner: boolean;
   /** The tier the viewer holds on this creator, marked in the Memberships tab. */
   heldTierId?: string | null;
+  /** Signed-in non-owner: tiers get join/upgrade/downgrade buttons. */
+  canJoin?: boolean;
+  /** Called after the viewer joins or changes tier, to refetch memberships. */
+  onMembershipChange?: () => void;
 }) {
   const [active, setActive] = useState<Tab>("Posts");
   const tabs = isOwner ? TABS : VIEWER_TABS;
@@ -86,6 +92,8 @@ export default function CreatorTabs({
             tiers={tiers}
             canManage={isOwner}
             heldTierId={heldTierId}
+            creatorId={canJoin ? creator.id : null}
+            onMembershipChange={onMembershipChange}
           />
         )}
         {active === "Profile" && isOwner && (

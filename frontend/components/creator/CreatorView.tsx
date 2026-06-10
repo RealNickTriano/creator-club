@@ -27,7 +27,11 @@ export default function CreatorView({
   tiers: Tier[];
 }) {
   const { user, loading } = useCurrentUser();
-  const { memberships, loading: membershipsLoading } = useMemberships();
+  const {
+    memberships,
+    loading: membershipsLoading,
+    refresh: refreshMemberships,
+  } = useMemberships();
 
   if (loading || membershipsLoading) {
     return <BrandLoader />;
@@ -59,6 +63,8 @@ export default function CreatorView({
           creator={creator}
           tiers={tiers}
           heldTierId={heldTierId}
+          canJoin
+          onMembershipChange={refreshMemberships}
         />
       )}
     </HomeShell>

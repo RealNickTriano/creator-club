@@ -14,11 +14,17 @@ export default function CreatorViewerView({
   creator,
   tiers,
   heldTierId = null,
+  canJoin = false,
+  onMembershipChange,
 }: {
   creator: PublicUser;
   tiers: Tier[];
   /** The tier the viewer holds on this creator, marked in the Memberships tab. */
   heldTierId?: string | null;
+  /** Signed-in non-owner: tiers get join/upgrade/downgrade buttons. */
+  canJoin?: boolean;
+  /** Called after the viewer joins or changes tier, to refetch memberships. */
+  onMembershipChange?: () => void;
 }) {
   return (
     <div className="mx-auto max-w-2xl">
@@ -30,6 +36,8 @@ export default function CreatorViewerView({
           tiers={tiers}
           isOwner={false}
           heldTierId={heldTierId}
+          canJoin={canJoin}
+          onMembershipChange={onMembershipChange}
         />
       </div>
     </div>

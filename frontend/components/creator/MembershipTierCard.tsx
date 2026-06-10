@@ -16,16 +16,20 @@ const HELD_BORDER_STYLE: React.CSSProperties = {
  * One tier in the Memberships tab: name, price, and description (when set).
  * Pass `onEdit` to show the owner's Edit control, which hands the tier back;
  * without it the card is read-only (the viewer side). `held` marks the tier
- * the viewer is currently subscribed to ("Your tier").
+ * the viewer is currently subscribed to ("Your tier"), and `action` renders
+ * the viewer's join/upgrade/downgrade button — the parent decides the label
+ * and handles the call.
  */
 export default function MembershipTierCard({
   tier,
   onEdit,
   held = false,
+  action,
 }: {
   tier: Tier;
   onEdit?: (tier: Tier) => void;
   held?: boolean;
+  action?: { label: string; onClick: () => void; disabled?: boolean };
 }) {
   return (
     <div
@@ -52,6 +56,16 @@ export default function MembershipTierCard({
         )}
       </div>
       {held && <TierPill name="Your tier" rank={tier.rank} />}
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          disabled={action.disabled}
+          className="bg-foreground text-background inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full px-3 text-xs font-medium transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+        >
+          {action.label}
+        </button>
+      )}
       {onEdit && (
         <button
           type="button"

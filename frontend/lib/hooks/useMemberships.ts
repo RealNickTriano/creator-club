@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listMyMemberships } from "@/lib/api/memberships";
 import type { Membership } from "@/types/membership";
 
 type Memberships = {
   memberships: Membership[];
+  /** True during the initial load only — `refresh` updates in place. */
   loading: boolean;
   /** Set when `/memberships` fails — most commonly a 401 (not signed in). */
   error: boolean;
+  /** Refetch the list, e.g. after joining or changing a tier. */
+  refresh: () => void;
 };
 
 /**
@@ -19,12 +22,16 @@ export function useMemberships(): Memberships {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     let active = true;
     listMyMemberships()
       .then((m) => {
-        if (active) setMemberships(m);
+        if (active) {
+          setMemberships(m);
+          setError(false);
+        }
       })
       .catch(() => {
         if (active) setError(true);
@@ -35,7 +42,9 @@ export function useMemberships(): Memberships {
     return () => {
       active = false;
     };
-  }, []);
+  }, [generation]);
 
-  return { memberships, loading, error };
+  const refresh = useCallback(() => setGeneration((g) => g + 1), []);
+
+  return { memberships, loading, error, refresh };
 }

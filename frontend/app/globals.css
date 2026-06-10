@@ -69,9 +69,59 @@ body {
   }
 }
 
+/* Modal entrance/exit: the overlay fades while the card pops up into place;
+   closing plays the reverse. The exit animations gate the modal's unmount
+   (it leaves the DOM on animationend). */
+@theme {
+  --animate-modal-fade: fade-in 0.25s ease-out both;
+  --animate-modal-pop: modal-pop 0.25s ease-out both;
+  --animate-modal-fade-out: fade-out 0.2s ease-in both;
+  --animate-modal-pop-out: modal-pop-out 0.2s ease-in both;
+
+  @keyframes modal-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes modal-pop-out {
+    from {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.96) translateY(8px);
+    }
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-brand-breathe,
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-modal-fade,
+  .animate-modal-pop {
     animation: none;
+  }
+
+  /* Exit animations still fire (the modal unmounts on animationend), just
+     instantly. */
+  .animate-modal-fade-out,
+  .animate-modal-pop-out {
+    animation-duration: 0.01ms;
   }
 }

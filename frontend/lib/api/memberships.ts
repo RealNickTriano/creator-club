@@ -9,3 +9,20 @@ import type { Membership } from "@/types/membership";
 export function listMyMemberships(): Promise<Membership[]> {
   return apiFetch<Membership[]>("/memberships", { cache: "no-store" });
 }
+
+/**
+ * Sets the signed-in user's membership with a creator to a tier — one
+ * upsert-style call covers join, resume, upgrade and downgrade. Paid tiers
+ * run the backend's simulated billing (~2s), so callers should show a
+ * pending state.
+ */
+export function setMembership(
+  creatorId: string,
+  tierId: string,
+): Promise<Membership> {
+  return apiFetch<Membership>("/memberships", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ creator_id: creatorId, tier_id: tierId }),
+  });
+}
