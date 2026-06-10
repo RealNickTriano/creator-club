@@ -60,6 +60,41 @@ async def test_update_user_only_touches_provided_fields(
   assert refreshed.bio == "first"  # left untouched by the handle-only update
 
 
+async def test_create_user_defaults_personal_name_to_google_name(
+  db_session: AsyncSession,
+) -> None:
+  """Creator Club addresses new users by their Google name to start."""
+  user = await service.create_user(db_session, _new_user())
+
+  assert user.personal_name == "Ada Lovelace"
+  assert user.display_name is None  # shown name falls back to google_name
+
+
+async def test_create_user_keeps_explicit_personal_name(
+  db_session: AsyncSession,
+) -> None:
+  user = await service.create_user(
+    db_session, _new_user(personal_name="Augusta Ada King")
+  )
+
+  assert user.personal_name == "Augusta Ada King"
+
+
+async def test_update_user_applies_names(db_session: AsyncSession) -> None:
+  user = await service.create_user(db_session, _new_user())
+
+  await service.update_user(
+    db_session,
+    user,
+    UpdateUser(display_name="Ada", personal_name="Augusta Ada King"),
+  )
+
+  refreshed = await repository.get_user_by_id(db_session, user.id)
+  assert refreshed is not None
+  assert refreshed.display_name == "Ada"
+  assert refreshed.personal_name == "Augusta Ada King"
+
+
 async def test_get_user_by_handle_is_case_insensitive(
   db_session: AsyncSession,
 ) -> None:

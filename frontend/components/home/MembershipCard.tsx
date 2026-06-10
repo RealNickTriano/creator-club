@@ -1,6 +1,7 @@
 import Link from "next/link";
 import UserAvatar from "@/components/auth/UserAvatar";
 import TierPill from "@/components/home/TierPill";
+import { displayName } from "@/lib/utils/names";
 import type { Membership } from "@/types/membership";
 
 /**
@@ -17,7 +18,7 @@ export default function MembershipCard({
   const { creator, tier } = membership;
   const handle = creator.handle;
   const creatorName =
-    creator.google_name ?? (handle ? `@${handle}` : "Creator");
+    displayName(creator) ?? (handle ? `@${handle}` : "Creator");
 
   return (
     <Link

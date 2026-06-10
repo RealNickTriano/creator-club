@@ -10,6 +10,7 @@ import HomeShell from "@/components/home/HomeShell";
 import MembershipsSection from "@/components/home/MembershipsSection";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 import { useMemberships } from "@/lib/hooks/useMemberships";
+import { displayName } from "@/lib/utils/names";
 
 export default function HomePage() {
   const { user, loading, error } = useCurrentUser();
@@ -30,7 +31,10 @@ export default function HomePage() {
   // the creator's own page).
   const activeMemberships = memberships.filter((m) => m.active);
 
-  const firstName = user.google_name.split(" ")[0];
+  // The greeting addresses the user personally (personal_name), not by the
+  // public display name others see.
+  const greetingName = user.personal_name ?? displayName(user) ?? "there";
+  const firstName = greetingName.split(" ")[0];
 
   return (
     <HomeShell user={user}>

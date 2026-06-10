@@ -1,4 +1,4 @@
-import { BRAND_GRADIENT } from "@/lib/brand";
+import { displayName } from "@/lib/utils/names";
 import type { PublicUser } from "@/types/user";
 import UserAvatar from "../auth/UserAvatar";
 
@@ -16,7 +16,7 @@ export default function CreatorIdentity({
   handleSuffix?: string;
   children?: React.ReactNode;
 }) {
-  const name = creator.google_name ?? creator.handle ?? "Untitled creator";
+  const name = displayName(creator) ?? creator.handle ?? "Untitled creator";
 
   return (
     <header className="flex items-start gap-4">

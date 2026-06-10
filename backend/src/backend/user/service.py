@@ -15,7 +15,15 @@ from backend.user.schemas import NewUser, UpdateUser
 
 
 async def create_user(session: AsyncSession, new_user: NewUser) -> User:
-  """Create a user. A missing Google display name is left ``None``."""
+  """Create a user. A missing Google display name is left ``None``.
+
+  ``personal_name`` — how Creator Club addresses the user — starts as the
+  Google name unless explicitly provided.
+  """
+  if new_user.personal_name is None:
+    new_user = new_user.model_copy(
+      update={"personal_name": new_user.google_name}
+    )
   return await repository.create_user(session, new_user)
 
 

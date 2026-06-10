@@ -23,6 +23,11 @@ class User(Base):
   google_email: Mapped[str] = mapped_column(String(254), unique=True)
   handle: Mapped[str | None] = mapped_column(String(255), unique=True)  # chosen later
   google_name: Mapped[str | None] = mapped_column(String(255))
+  # The name shown to other users; clients fall back to google_name when unset.
+  display_name: Mapped[str | None] = mapped_column(String(255))
+  # The name Creator Club itself addresses the user by (preferably their full
+  # name); copied from google_name at creation.
+  personal_name: Mapped[str | None] = mapped_column(String(255))
   bio: Mapped[str | None] = mapped_column(Text)
   google_avatar_url: Mapped[str | None] = mapped_column(Text)
   last_logged_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

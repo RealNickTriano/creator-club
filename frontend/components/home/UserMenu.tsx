@@ -6,6 +6,7 @@ import UserAvatar from "@/components/auth/UserAvatar";
 import LogOutIcon from "@/components/svg/LogOutIcon";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { logout } from "@/lib/api/auth";
+import { displayName } from "@/lib/utils/names";
 import type { User } from "@/types/user";
 
 /**
@@ -81,13 +82,13 @@ export default function UserMenu({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={collapsed ? user.google_name : undefined}
+        title={collapsed ? (displayName(user) ?? undefined) : undefined}
         className={`hover:bg-foreground/5 flex w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left transition-colors ${collapsed ? "justify-center" : ""}`}
       >
         <UserAvatar user={user} size={32} />
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{user.google_name}</p>
+            <p className="truncate text-sm font-medium">{displayName(user)}</p>
             <p className="text-muted truncate text-xs">{user.google_email}</p>
           </div>
         )}

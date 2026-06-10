@@ -29,14 +29,15 @@ class NewUser(BaseModel):
   """Fields needed to create a user, sourced from the Google profile.
 
   ``google_name`` and ``google_avatar_url`` are optional because Google may
-  omit them; the service derives a fallback display name when ``google_name``
-  is ``None``.
+  omit them. ``personal_name`` — the name Creator Club addresses the user by —
+  defaults to ``google_name`` in the service when not supplied.
   """
 
   google_sub: str
   google_email: str
   google_name: str | None = None
   google_avatar_url: str | None = None
+  personal_name: str | None = None
 
 
 class UpdateUser(BaseModel):
@@ -50,6 +51,8 @@ class UpdateUser(BaseModel):
 
   handle: str | None = Field(default=None, pattern=HANDLE_PATTERN)
   bio: str | None = None
+  display_name: str | None = None
+  personal_name: str | None = None
 
 
 class PublicUser(BaseModel):
@@ -60,13 +63,19 @@ class PublicUser(BaseModel):
   id: uuid.UUID
   handle: str | None
   google_name: str | None
+  display_name: str | None
   bio: str | None
   google_avatar_url: str | None
 
 
 class PrivateUser(PublicUser):
-  """A user viewing themselves — adds owner-only fields."""
+  """A user viewing themselves — adds owner-only fields.
+
+  ``personal_name`` is how Creator Club addresses the user (greetings,
+  email) — it's not part of the public profile.
+  """
 
   google_email: str
+  personal_name: str | None
   last_logged_in_at: datetime | None
   created_at: datetime

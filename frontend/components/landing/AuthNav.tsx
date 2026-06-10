@@ -3,6 +3,7 @@
 import Link from "next/link";
 import UserAvatar from "@/components/auth/UserAvatar";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
+import { displayName } from "@/lib/utils/names";
 
 /**
  * Landing-page nav auth state: a "Sign in" link when signed out, or the user's
@@ -31,7 +32,7 @@ export default function AuthNav() {
       className="hover:bg-foreground/5 flex items-center gap-2.5 rounded-full py-1 pr-3 pl-1 text-sm font-medium transition-colors"
     >
       <UserAvatar user={user} size={28} />
-      <span className="hidden sm:inline">{user.google_name}</span>
+      <span className="hidden sm:inline">{displayName(user)}</span>
     </Link>
   );
 }

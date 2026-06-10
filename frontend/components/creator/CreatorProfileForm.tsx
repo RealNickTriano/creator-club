@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 import { updateProfile } from "@/lib/api/users";
 import type { PublicUser, UpdateUserProfile } from "@/types/user";
 
@@ -15,15 +16,24 @@ const FIELD_CLASS =
   "text-sm outline-none transition-colors";
 
 /**
- * The owner's Profile tab: edit the handle and bio. Saving refreshes the
- * route so the page picks up the new values — and since the page lives at
- * `/c/{handle}`, a handle change navigates to the new address instead.
+ * The owner's Profile tab: edit the display name, personal name, handle and
+ * bio. Saving refreshes the route so the page picks up the new values — and
+ * since the page lives at `/c/{handle}`, a handle change navigates to the new
+ * address instead.
+ *
+ * `personal_name` is owner-only, so it isn't on the server-fetched
+ * `PublicUser` — it's loaded from `/me` and the input fills in once that
+ * resolves.
  */
 export default function CreatorProfileForm({
   creator,
 }: {
   creator: PublicUser;
 }) {
+  const { user: me } = useCurrentUser();
+  const [name, setName] = useState(creator.display_name ?? "");
+  // null = untouched: the input shows the /me value until the user edits it.
+  const [personalNameEdit, setPersonalNameEdit] = useState<string | null>(null);
   const [handle, setHandle] = useState(creator.handle ?? "");
   const [bio, setBio] = useState(creator.bio ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +41,22 @@ export default function CreatorProfileForm({
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
+  const personalName = personalNameEdit ?? me?.personal_name ?? "";
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const cleaned = handle.trim().replace(/^@+/, "").toLowerCase();
-    const update: UpdateUserProfile = { bio: bio.trim() || null };
+    // Empty clears the display name, falling back to the Google name.
+    const update: UpdateUserProfile = {
+      bio: bio.trim() || null,
+      display_name: name.trim() || null,
+    };
+    // Only send personal_name once /me has loaded, so a quick save can't
+    // wipe the stored value with the empty placeholder state.
+    if (me) {
+      update.personal_name = personalName.trim() || null;
+    }
     if (cleaned) {
       if (!HANDLE_PATTERN.test(cleaned)) {
         setError(
@@ -76,6 +97,36 @@ export default function CreatorProfileForm({
 
   return (
     <form onSubmit={onSubmit} className="max-w-md space-y-3">
+      <label className="block">
+        <span className="text-foreground mb-1 block text-xs font-medium">
+          Display name
+        </span>
+        <input
+          value={name}
+          onChange={(e) => onChange(setName)(e.target.value)}
+          placeholder={creator.google_name ?? "Your name"}
+          className={FIELD_CLASS}
+        />
+        <span className="text-muted mt-1 block text-xs">
+          How you appear to others.
+        </span>
+      </label>
+
+      <label className="block">
+        <span className="text-foreground mb-1 block text-xs font-medium">
+          Personal name
+        </span>
+        <input
+          value={personalName}
+          onChange={(e) => onChange(setPersonalNameEdit)(e.target.value)}
+          placeholder="Your full name"
+          className={FIELD_CLASS}
+        />
+        <span className="text-muted mt-1 block text-xs">
+          How Creator Club addresses you — never shown to other users.
+        </span>
+      </label>
+
       <label className="block">
         <span className="text-foreground mb-1 block text-xs font-medium">
           Handle
