@@ -11,12 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.membership import repository
 from backend.membership.models import Membership
 from backend.tier.models import Tier
+from backend.user.models import User
 
 
 async def list_memberships_by_member(
   session: AsyncSession, member_id: uuid.UUID
-) -> list[tuple[Membership, Tier]]:
-  """Return all memberships held by ``member_id``, each with its tier."""
+) -> list[tuple[Membership, Tier, User]]:
+  """Return all memberships held by ``member_id``, each with its tier and creator."""
   return await repository.list_memberships_by_member(session, member_id)
 
 
@@ -43,9 +44,10 @@ async def set_membership(
   that returns the membership unchanged.
 
   Inputs are expected to be validated already (tier belongs to creator, not
-  self, free tier) — that's the router's job. ``current_period_end = None`` is
-  open-ended, which is only correct while every reachable tier is free; the
-  billing phase replaces this with real period bookkeeping.
+  self) and any billing handled — that's the router's job. Every membership is
+  open-ended (``current_period_end = None``) until the real billing phase
+  brings period bookkeeping; today paid tiers only run the simulated charge in
+  :mod:`backend.billing`.
 
   Returns ``(membership, created)`` so the route can answer 201 vs 200.
   """

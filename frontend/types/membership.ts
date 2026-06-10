@@ -1,11 +1,19 @@
-/** A creator the signed-in user supports, as shown on the home page. */
+import type { Tier } from "@/types/tier";
+import type { PublicUser } from "@/types/user";
+
+/**
+ * A membership as returned by `GET /memberships` and `POST /memberships`:
+ * the row fields with the held tier and the creator's public profile
+ * embedded, plus the derived `active` status so clients never re-derive it.
+ */
 export interface Membership {
-  /** Creator's handle, without the leading `@`; routes to `/c/{handle}`. */
-  handle: string;
-  /** Creator's display name. */
-  creatorName: string;
-  /** The user's current tier on this creator (e.g. "Insider", "Free"). */
-  tier: string;
-  /** Rank of the current tier; 0 is the free tier. Drives the tier pill color. */
-  tierRank: number;
+  id: string;
+  member_id: string;
+  creator_id: string;
+  started_at: string;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  tier: Tier;
+  creator: PublicUser;
+  active: boolean;
 }

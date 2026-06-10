@@ -14,11 +14,14 @@ export default function MembershipCard({
 }: {
   membership: Membership;
 }) {
-  const { handle, creatorName, tier, tierRank } = membership;
+  const { creator, tier } = membership;
+  const handle = creator.handle;
+  const creatorName =
+    creator.google_name ?? (handle ? `@${handle}` : "Creator");
 
   return (
     <Link
-      href={`/c/${handle}`}
+      href={handle ? `/c/${handle}` : "#"}
       className="border-border bg-background hover:bg-foreground/5 flex items-center gap-3 rounded-xl border p-3.5 transition-colors"
     >
       <span
@@ -30,9 +33,11 @@ export default function MembershipCard({
         <b className="text-foreground block truncate text-sm font-semibold">
           {creatorName}
         </b>
-        <span className="text-muted block truncate text-xs">@{handle}</span>
+        {handle && (
+          <span className="text-muted block truncate text-xs">@{handle}</span>
+        )}
         <div className="mt-1.5">
-          <TierPill name={tier} rank={tierRank} />
+          <TierPill name={tier.name} rank={tier.rank} />
         </div>
       </div>
       <span aria-hidden="true" className="text-muted shrink-0 text-lg">

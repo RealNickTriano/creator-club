@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.membership.models import Membership
 from backend.tier.models import Tier
+from backend.user.models import User
 
 
 async def create_membership(
@@ -42,15 +43,16 @@ async def get_membership_by_member_and_creator(
 
 async def list_memberships_by_member(
   session: AsyncSession, member_id: uuid.UUID
-) -> list[tuple[Membership, Tier]]:
-  """Return all of this member's memberships, each paired with its held tier."""
+) -> list[tuple[Membership, Tier, User]]:
+  """Return all of this member's memberships, each with its held tier and creator."""
   rows = await session.execute(
-    select(Membership, Tier)
+    select(Membership, Tier, User)
     .join(Tier, Membership.tier_id == Tier.id)
+    .join(User, Membership.creator_id == User.id)
     .where(Membership.member_id == member_id)
     .order_by(Membership.started_at)
   )
-  return [(membership, tier) for membership, tier in rows.all()]
+  return [(membership, tier, creator) for membership, tier, creator in rows.all()]
 
 
 async def update_membership(

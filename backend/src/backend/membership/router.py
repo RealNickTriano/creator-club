@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import billing
 from backend.auth.router import get_current_user
 from backend.db import get_db
 from backend.entitlements import membership_is_active_now
@@ -16,12 +17,15 @@ from backend.tier.models import Tier
 from backend.tier.schemas import PublicTier
 from backend.user import service as user_service
 from backend.user.models import User
+from backend.user.schemas import PublicUser
 
 router = APIRouter(prefix="/memberships", tags=["memberships"])
 
 
-def _to_public(membership: Membership, tier: Tier) -> PublicMembership:
-  """Assemble the response shape: row fields + held tier + derived status."""
+def _to_public(
+  membership: Membership, tier: Tier, creator: User
+) -> PublicMembership:
+  """Assemble the response shape: row fields + tier + creator + derived status."""
   return PublicMembership(
     id=membership.id,
     member_id=membership.member_id,
@@ -30,6 +34,7 @@ def _to_public(membership: Membership, tier: Tier) -> PublicMembership:
     current_period_end=membership.current_period_end,
     canceled_at=membership.canceled_at,
     tier=PublicTier.model_validate(tier),
+    creator=PublicUser.model_validate(creator),
     active=membership_is_active_now(membership.current_period_end),
   )
 
@@ -40,8 +45,8 @@ async def list_my_memberships(
   db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[PublicMembership]:
   """List the current user's memberships (``member_id`` = you, from the session)."""
-  pairs = await membership_service.list_memberships_by_member(db, user.id)
-  return [_to_public(membership, tier) for membership, tier in pairs]
+  rows = await membership_service.list_memberships_by_member(db, user.id)
+  return [_to_public(membership, tier, creator) for membership, tier, creator in rows]
 
 
 @router.post("", response_model=PublicMembership)
@@ -79,14 +84,13 @@ async def set_membership(
       detail="You can't subscribe to yourself.",
     )
   if tier.price_cents > 0:
-    raise HTTPException(
-      status_code=status.HTTP_402_PAYMENT_REQUIRED,
-      detail="Paid tiers aren't available yet — billing is coming later.",
-    )
+    # Billing is deferred — the stub logs the charge and waits so the flow
+    # feels like a real payment round-trip.
+    await billing.charge_for_tier(user.id, tier)
 
   membership, created = await membership_service.set_membership(
     db, user.id, creator.id, tier.id
   )
   if created:
     response.status_code = status.HTTP_201_CREATED
-  return _to_public(membership, tier)
+  return _to_public(membership, tier, creator)

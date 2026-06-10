@@ -97,10 +97,10 @@ async def test_get_membership_by_member_and_creator_missing_returns_none(
   assert found is None
 
 
-async def test_list_memberships_by_member_returns_pairs(
+async def test_list_memberships_by_member_returns_tier_and_creator(
   db_session: AsyncSession,
 ) -> None:
-  """Each membership comes back paired with its held tier; others' rows don't."""
+  """Each membership comes back with its held tier and creator; others' rows don't."""
   member = await _create_user(db_session)
   creator_a = await _create_user(db_session)
   creator_b = await _create_user(db_session)
@@ -116,12 +116,11 @@ async def test_list_memberships_by_member_returns_pairs(
   other = await _create_user(db_session)
   await repository.create_membership(db_session, other.id, creator_a.id, tier_a.id)
 
-  pairs = await repository.list_memberships_by_member(db_session, member.id)
+  rows = await repository.list_memberships_by_member(db_session, member.id)
 
-  assert {m.id for m, _ in pairs} == {first.id, second.id}
-  assert {(m.id, t.id) for m, t in pairs} == {
-    (first.id, tier_a.id),
-    (second.id, tier_b.id),
+  assert {(m.id, t.id, c.id) for m, t, c in rows} == {
+    (first.id, tier_a.id, creator_a.id),
+    (second.id, tier_b.id, creator_b.id),
   }
 
 

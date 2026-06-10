@@ -7,8 +7,9 @@ Write side:
 
 Read side:
 
-* :class:`PublicMembership` — the membership with its held tier embedded and
-  the derived ``active`` status, so clients never re-derive it.
+* :class:`PublicMembership` — the membership with its held tier and the
+  creator's public profile embedded, plus the derived ``active`` status, so
+  clients never re-derive or re-fetch any of it.
 """
 
 import uuid
@@ -17,6 +18,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from backend.tier.schemas import PublicTier
+from backend.user.schemas import PublicUser
 
 
 class NewMembership(BaseModel):
@@ -27,7 +29,7 @@ class NewMembership(BaseModel):
 
 
 class PublicMembership(BaseModel):
-  """A membership as returned to the member: row fields + tier + status."""
+  """A membership as returned to the member: row fields + tier + creator + status."""
 
   model_config = ConfigDict(from_attributes=True)
 
@@ -38,4 +40,5 @@ class PublicMembership(BaseModel):
   current_period_end: datetime | None
   canceled_at: datetime | None
   tier: PublicTier
+  creator: PublicUser
   active: bool

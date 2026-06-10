@@ -111,9 +111,11 @@ async def test_list_memberships_by_member_returns_held_memberships(
     db_session, member.id, creator.id, tier.id
   )
 
-  pairs = await service.list_memberships_by_member(db_session, member.id)
+  rows = await service.list_memberships_by_member(db_session, member.id)
 
-  assert [(m.id, t.id) for m, t in pairs] == [(membership.id, tier.id)]
+  assert [(m.id, t.id, c.id) for m, t, c in rows] == [
+    (membership.id, tier.id, creator.id)
+  ]
 
 
 async def test_set_membership_resumes_a_canceled_membership(

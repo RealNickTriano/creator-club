@@ -25,7 +25,7 @@ export default function MembershipsSection({
         {hasMemberships ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {memberships.map((membership) => (
-              <MembershipCard key={membership.handle} membership={membership} />
+              <MembershipCard key={membership.id} membership={membership} />
             ))}
           </div>
         ) : (

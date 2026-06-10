@@ -14,6 +14,7 @@ from fastapi import HTTPException, Response
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import billing
 from backend.auth.router import get_current_user
 from backend.main import app
 from backend.membership import router as membership_router
@@ -99,6 +100,7 @@ async def test_list_memberships_returns_only_yours(
 
   assert [m.id for m in payload] == [joined.id]
   assert payload[0].tier.id == tier.id
+  assert payload[0].creator.id == creator.id
   assert payload[0].active is True
 
 
@@ -168,15 +170,20 @@ async def test_subscribing_to_yourself_returns_400(
   assert exc_info.value.status_code == 400
 
 
-async def test_paid_tier_returns_402(db_session: AsyncSession) -> None:
-  """Billing is deferred — only free tiers complete today."""
+async def test_paid_tier_joins_via_simulated_billing(
+  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """A paid tier runs the billing stub, then joins like any other tier."""
+  monkeypatch.setattr(billing, "SIMULATED_BILLING_SECONDS", 0)
   member = await _create_user(db_session)
   creator = await _create_user(db_session)
   paid = await _create_tier(db_session, creator, price_cents=500)
 
-  with pytest.raises(HTTPException) as exc_info:
-    await _post(db_session, member, creator.id, paid.id)
-  assert exc_info.value.status_code == 402
+  payload, response = await _post(db_session, member, creator.id, paid.id)
+
+  assert response.status_code == 201
+  assert payload.tier.id == paid.id
+  assert payload.active is True
 
 
 async def test_join_returns_201_with_tier_and_status(

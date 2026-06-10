@@ -9,10 +9,11 @@ import HomeGreeting from "@/components/home/HomeGreeting";
 import HomeShell from "@/components/home/HomeShell";
 import MembershipsSection from "@/components/home/MembershipsSection";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
-import { PLACEHOLDER_MEMBERSHIPS } from "@/lib/placeholders/memberships";
+import { useMemberships } from "@/lib/hooks/useMemberships";
 
 export default function HomePage() {
   const { user, loading, error } = useCurrentUser();
+  const { memberships, loading: membershipsLoading } = useMemberships();
   const router = useRouter();
 
   // Bounce signed-out visitors (no session / 401) back to login.
@@ -20,9 +21,14 @@ export default function HomePage() {
     if (!loading && (error || !user)) router.replace("/login");
   }, [loading, error, user, router]);
 
-  if (loading || !user) {
+  if (loading || !user || membershipsLoading) {
     return <BrandLoader />;
   }
+
+  // The home grid shows the creators they currently support; canceled and
+  // expired memberships stay out of it (they resurface as a resume path on
+  // the creator's own page).
+  const activeMemberships = memberships.filter((m) => m.active);
 
   const firstName = user.google_name.split(" ")[0];
 
@@ -36,7 +42,7 @@ export default function HomePage() {
 
         <CreatorPageSection handle={user.handle} />
 
-        <MembershipsSection memberships={PLACEHOLDER_MEMBERSHIPS} />
+        <MembershipsSection memberships={activeMemberships} />
       </div>
     </HomeShell>
   );
