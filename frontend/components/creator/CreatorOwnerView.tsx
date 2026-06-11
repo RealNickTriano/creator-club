@@ -1,6 +1,6 @@
 import CreatorHeader from "@/components/creator/CreatorHeader";
 import CreatorTabs from "@/components/creator/CreatorTabs";
-import { PLACEHOLDER_POSTS } from "@/lib/placeholders/creator";
+import { EXAMPLE_OWNER_POSTS } from "@/lib/placeholders/creator";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
@@ -22,7 +22,7 @@ export default function CreatorOwnerView({
       <div className="mt-8">
         <CreatorTabs
           creator={creator}
-          posts={PLACEHOLDER_POSTS}
+          posts={EXAMPLE_OWNER_POSTS}
           tiers={tiers}
           isOwner
         />

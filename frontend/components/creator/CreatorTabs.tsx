@@ -4,8 +4,8 @@ import { useState } from "react";
 import CreatorMembershipsList from "@/components/creator/CreatorMembershipsList";
 import CreatorPostList from "@/components/creator/CreatorPostList";
 import CreatorProfileForm from "@/components/creator/CreatorProfileForm";
-import CreatorViewerPostCard from "@/components/creator/CreatorViewerPostCard";
-import type { CreatorPost } from "@/types/creator";
+import PostCard from "@/components/creator/PostCard";
+import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
@@ -31,7 +31,7 @@ export default function CreatorTabs({
   onMembershipChange,
 }: {
   creator: PublicUser;
-  posts: CreatorPost[];
+  posts: Post[];
   tiers: Tier[];
   isOwner: boolean;
   /** The tier the viewer holds on this creator, marked in the Memberships tab. */
@@ -46,7 +46,7 @@ export default function CreatorTabs({
   // Drafts are owner-only; viewers see the published feed.
   const visiblePosts = isOwner
     ? posts
-    : posts.filter((post) => post.publishedAt !== null);
+    : posts.filter((post) => post.published_at !== null);
 
   return (
     <div>
@@ -83,7 +83,7 @@ export default function CreatorTabs({
           ) : (
             <div className="space-y-3">
               {visiblePosts.map((post) => (
-                <CreatorViewerPostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} />
               ))}
             </div>
           ))}

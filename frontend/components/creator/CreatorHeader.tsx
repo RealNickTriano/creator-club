@@ -8,7 +8,7 @@ import type { PublicUser } from "@/types/user";
  */
 export default function CreatorHeader({ creator }: { creator: PublicUser }) {
   return (
-    <CreatorIdentity creator={creator} handleSuffix=" · this is your page">
+    <CreatorIdentity creator={creator} handleSuffix=" this is your page">
       <button
         type="button"
         className="bg-foreground text-background inline-flex h-9 cursor-pointer items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90"

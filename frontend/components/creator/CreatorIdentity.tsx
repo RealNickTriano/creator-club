@@ -5,7 +5,7 @@ import UserAvatar from "../auth/UserAvatar";
 /**
  * The shared creator-page identity block: avatar, name, `@handle`, and bio.
  * Both the owner and viewer headers compose this — the owner passes a handle
- * suffix ("· this is your page") and an actions row via `children`.
+ * suffix ("this is your page") and an actions row via `children`.
  */
 export default function CreatorIdentity({
   creator,
