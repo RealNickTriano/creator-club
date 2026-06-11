@@ -46,6 +46,21 @@ async def get_current_user(
   return user
 
 
+async def get_current_user_or_none(
+  request: Request,
+  db: Annotated[AsyncSession, Depends(get_db)],
+) -> User | None:
+  """Resolve the signed-in user from the session, or ``None`` when signed out.
+
+  For routes that any visitor may hit but that adapt to the viewer — e.g. a
+  creator's post feed, where entitlements depend on who (if anyone) is asking.
+  """
+  try:
+    return await get_current_user(request, db)
+  except HTTPException:
+    return None
+
+
 @router.get("/google/login")
 async def google_login() -> RedirectResponse:
   """Redirect the user to Google's OAuth consent screen."""

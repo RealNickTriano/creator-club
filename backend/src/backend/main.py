@@ -10,6 +10,7 @@ from backend.api import register_routes
 from backend.config import settings
 from backend.db import Base, engine
 from backend.membership import models as membership_models  # noqa: F401  (register models on Base.metadata)
+from backend.post import models as post_models  # noqa: F401  (register models on Base.metadata)
 from backend.tier import models as tier_models  # noqa: F401  (register models on Base.metadata)
 from backend.user import models  # noqa: F401  (register models on Base.metadata)
 
