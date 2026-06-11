@@ -9,13 +9,14 @@ import type { User } from "@/types/user";
 /**
  * Responsive home layout. On desktop it's a persistent left sidebar beside the
  * main content; on mobile the sidebar collapses to a top bar whose button opens
- * the menu as a full-screen drawer.
+ * the menu as a full-screen drawer. `user` is null for signed-out visitors —
+ * the sidebar then offers "Log in" instead of the user menu.
  */
 export default function HomeShell({
   user,
   children,
 }: {
-  user: User;
+  user: User | null;
   children?: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);

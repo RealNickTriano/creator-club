@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Wordmark from "@/components/brand/Wordmark";
+import SidebarLogin from "@/components/home/SidebarLogin";
 import SidebarNav from "@/components/home/SidebarNav";
 import UserMenu from "@/components/home/UserMenu";
 import MenuIcon from "@/components/svg/MenuIcon";
@@ -9,10 +10,11 @@ import type { User } from "@/types/user";
 
 /**
  * Desktop sidebar: brand + collapse toggle up top, navigation in the middle,
- * and the signed-in user pinned to the bottom. Collapses to an icon rail.
- * Hidden on mobile, where {@link MobileSidebar} takes over as a drawer.
+ * and the signed-in user pinned to the bottom — or a "Log in" button for
+ * signed-out visitors. Collapses to an icon rail. Hidden on mobile, where
+ * {@link MobileSidebar} takes over as a drawer.
  */
-export default function Sidebar({ user }: { user: User }) {
+export default function Sidebar({ user }: { user: User | null }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -37,9 +39,13 @@ export default function Sidebar({ user }: { user: User }) {
 
       <SidebarNav collapsed={collapsed} />
 
-      {/* Footer: signed-in user + menu (theme, logout). */}
+      {/* Footer: signed-in user + menu (theme, logout), or the login CTA. */}
       <div className="border-border border-t p-3">
-        <UserMenu user={user} collapsed={collapsed} />
+        {user ? (
+          <UserMenu user={user} collapsed={collapsed} />
+        ) : (
+          <SidebarLogin collapsed={collapsed} />
+        )}
       </div>
     </aside>
   );

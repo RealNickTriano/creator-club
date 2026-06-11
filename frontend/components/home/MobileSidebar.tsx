@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Wordmark from "@/components/brand/Wordmark";
+import SidebarLogin from "@/components/home/SidebarLogin";
 import SidebarNav from "@/components/home/SidebarNav";
 import UserMenu from "@/components/home/UserMenu";
 import CloseIcon from "@/components/svg/CloseIcon";
@@ -10,14 +11,14 @@ import type { User } from "@/types/user";
 /**
  * Mobile-only full-screen menu drawer. Stays mounted so it animates both open
  * and closed; `inert` makes it non-interactive while hidden. Shares the nav and
- * user menu with the desktop sidebar.
+ * user menu (or the signed-out login CTA) with the desktop sidebar.
  */
 export default function MobileSidebar({
   user,
   open,
   onClose,
 }: {
-  user: User;
+  user: User | null;
   open: boolean;
   onClose: () => void;
 }) {
@@ -52,7 +53,7 @@ export default function MobileSidebar({
       <SidebarNav onNavigate={onClose} />
 
       <div className="border-border border-t p-3">
-        <UserMenu user={user} collapsed={false} />
+        {user ? <UserMenu user={user} collapsed={false} /> : <SidebarLogin />}
       </div>
     </div>
   );
