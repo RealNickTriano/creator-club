@@ -31,6 +31,7 @@ export default function CreatorTabs({
   canJoin = false,
   onMembershipChange,
   onNewPost,
+  onPostsChange,
 }: {
   creator: PublicUser;
   posts: Post[];
@@ -44,6 +45,8 @@ export default function CreatorTabs({
   onMembershipChange?: () => void;
   /** Owner: opens the new-post composer (the empty feed's nudge). */
   onNewPost?: () => void;
+  /** Owner: called after a post is deleted, to refetch the feed. */
+  onPostsChange?: () => void;
 }) {
   const [active, setActive] = useState<Tab>("Posts");
   const tabs = isOwner ? TABS : VIEWER_TABS;
@@ -88,7 +91,11 @@ export default function CreatorTabs({
       <div role="tabpanel" className="mt-5">
         {active === "Posts" &&
           (isOwner ? (
-            <CreatorPostList posts={published} onNewPost={onNewPost} />
+            <CreatorPostList
+              posts={published}
+              onNewPost={onNewPost}
+              onPostsChange={onPostsChange}
+            />
           ) : (
             <CreatorPostFeed
               posts={published}
@@ -102,6 +109,7 @@ export default function CreatorTabs({
           <CreatorPostList
             posts={drafts}
             onNewPost={onNewPost}
+            onPostsChange={onPostsChange}
             emptyTitle="No drafts"
             emptyHint="Posts you save without publishing wait here, visible only to you."
           />

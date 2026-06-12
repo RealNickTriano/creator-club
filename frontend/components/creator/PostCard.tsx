@@ -21,12 +21,15 @@ export default function PostCard({
   post,
   manageable = false,
   onUnlock,
+  onDelete,
 }: {
   post: Post;
   /** Owner view: show the management actions and draft state. */
   manageable?: boolean;
   /** Called with the unlocking tier when a locked post's CTA is clicked. */
   onUnlock?: (tier: Tier) => void;
+  /** Called with the post when a manageable card's Delete is clicked. */
+  onDelete?: (post: Post) => void;
 }) {
   const isDraft = post.published_at === null;
   const locked = !post.access.allowed;
@@ -84,7 +87,11 @@ export default function PostCard({
               Unpublish
             </button>
           )}
-          <button type="button" className={SMALL_BTN_DANGER}>
+          <button
+            type="button"
+            onClick={() => onDelete?.(post)}
+            className={SMALL_BTN_DANGER}
+          >
             Delete
           </button>
         </div>

@@ -26,6 +26,13 @@ export function updatePost(postId: string, update: UpdatePost): Promise<Post> {
   });
 }
 
+/** Deletes one of the signed-in user's own posts, members' access included. */
+export function deletePost(postId: string): Promise<void> {
+  return apiFetch<void>(`/posts/${encodeURIComponent(postId)}`, {
+    method: "DELETE",
+  });
+}
+
 /**
  * Fetches a creator's published feed by handle, newest first, with the
  * current viewer's entitlement already applied per post (`body` is `null` on

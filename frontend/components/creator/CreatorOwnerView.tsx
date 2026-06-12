@@ -26,7 +26,7 @@ export default function CreatorOwnerView({
   /** The owner's full feed: drafts included, everything unlocked. */
   posts: Post[];
   tiers: Tier[];
-  /** Called after a post is created, to refetch the feed. */
+  /** Called after a post is created or deleted, to refetch the feed. */
   onPostsChange?: () => void;
 }) {
   const [composing, setComposing] = useState(false);
@@ -41,6 +41,7 @@ export default function CreatorOwnerView({
           tiers={tiers}
           isOwner
           onNewPost={() => setComposing(true)}
+          onPostsChange={onPostsChange}
         />
       </div>
       <Modal
