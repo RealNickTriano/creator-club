@@ -9,7 +9,7 @@ import JoinTierDialog, {
 import MembershipTierCard from "@/components/creator/MembershipTierCard";
 import TierForm from "@/components/creator/TierForm";
 import Modal from "@/components/ui/Modal";
-import { setMembership } from "@/lib/api/memberships";
+import { useJoinTier } from "@/lib/hooks/useJoinTier";
 import type { Tier } from "@/types/tier";
 
 /**
@@ -41,9 +41,7 @@ export default function CreatorMembershipsList({
 }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Tier | null>(null);
-  const [confirming, setConfirming] = useState<Tier | null>(null);
-  const [joinPending, setJoinPending] = useState(false);
-  const [joinError, setJoinError] = useState(false);
+  const join = useJoinTier(creatorId, onMembershipChange);
   const router = useRouter();
 
   // Rank of the viewer's held tier, deciding Upgrade vs Downgrade labels.
@@ -52,21 +50,6 @@ export default function CreatorMembershipsList({
   function verbFor(tier: Tier): JoinVerb {
     if (heldRank === undefined) return "Join";
     return tier.rank > heldRank ? "Upgrade" : "Downgrade";
-  }
-
-  async function confirmJoin() {
-    if (!creatorId || !confirming) return;
-    setJoinError(false);
-    setJoinPending(true);
-    try {
-      await setMembership(creatorId, confirming.id);
-      onMembershipChange?.();
-      setConfirming(null);
-    } catch {
-      setJoinError(true);
-    } finally {
-      setJoinPending(false);
-    }
   }
 
   // New tiers slot in above the current top rung.
@@ -105,22 +88,19 @@ export default function CreatorMembershipsList({
                 ? {
                     label:
                       verbFor(tier) === "Join" ? "Join Tier" : verbFor(tier),
-                    onClick: () => {
-                      setJoinError(false);
-                      setConfirming(tier);
-                    },
+                    onClick: () => join.request(tier),
                   }
                 : undefined
             }
           />
         ))}
         <JoinTierDialog
-          tier={confirming}
-          verb={confirming ? verbFor(confirming) : "Join"}
-          pending={joinPending}
-          error={joinError}
-          onConfirm={confirmJoin}
-          onClose={() => setConfirming(null)}
+          tier={join.confirming}
+          verb={join.confirming ? verbFor(join.confirming) : "Join"}
+          pending={join.pending}
+          error={join.error}
+          onConfirm={join.confirm}
+          onClose={join.close}
         />
       </div>
     );

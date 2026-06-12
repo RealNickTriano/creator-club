@@ -3,9 +3,18 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+  APIRouter,
+  Depends,
+  HTTPException,
+  Query,
+  Request,
+  Response,
+  status,
+)
 from fastapi.responses import RedirectResponse
 from fastapi_sso.sso.google import GoogleSSO
+from fastapi_sso.state import generate_random_state
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
@@ -61,11 +70,32 @@ async def get_current_user_or_none(
     return None
 
 
+def _safe_next_path(path: str | None) -> str:
+  """Clamp a post-login destination to a same-app path.
+
+  Only plain relative paths ("/c/maya") are honored — absolute URLs and
+  protocol-relative forms ("//evil.example", "/\\evil.example") would let the
+  callback become an open redirect. Anything suspect falls back to /home.
+  """
+  if path and path.startswith("/") and not path.startswith(("//", "/\\")):
+    return path
+  return "/home"
+
+
 @router.get("/google/login")
-async def google_login() -> RedirectResponse:
-  """Redirect the user to Google's OAuth consent screen."""
+async def google_login(
+  next_path: Annotated[str, Query(alias="next")] = "/home",
+) -> RedirectResponse:
+  """Redirect to Google's consent screen, remembering where to land after.
+
+  ``next`` (a same-app path, e.g. ``/c/mayamakes``) rides through the OAuth
+  round trip inside the ``state`` parameter, after a random token that
+  fastapi-sso checks against its ``sso_state`` cookie on callback — so the
+  destination tags along without weakening the CSRF check.
+  """
+  state = f"{generate_random_state()}:{_safe_next_path(next_path)}"
   async with google_sso:
-    return await google_sso.get_login_redirect()
+    return await google_sso.get_login_redirect(state=state)
 
 
 @router.get("/google/callback")
@@ -76,7 +106,8 @@ async def google_callback(
   """Handle Google's callback: verify, persist the user, start a session.
 
   Stores the user id in the signed session cookie and redirects to the
-  frontend's /home, which loads the current user from ``/auth/me``.
+  destination stashed in the OAuth state by :func:`google_login` (validated
+  again here), falling back to the frontend's /home.
   """
   async with google_sso:
     try:
@@ -100,7 +131,12 @@ async def google_callback(
   )
 
   request.session["user_id"] = str(user.id)
-  return RedirectResponse(url=f"{settings.frontend_url.rstrip('/')}/home")
+  # The destination rides after the random token in the state param, which
+  # fastapi-sso has already matched against its sso_state cookie.
+  _, _, next_path = (request.query_params.get("state") or "").partition(":")
+  return RedirectResponse(
+    url=f"{settings.frontend_url.rstrip('/')}{_safe_next_path(next_path)}"
+  )
 
 
 @router.get("/me", response_model=PrivateUser)

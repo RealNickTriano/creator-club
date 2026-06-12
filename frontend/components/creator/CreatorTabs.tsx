@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import CreatorMembershipsList from "@/components/creator/CreatorMembershipsList";
+import CreatorPostFeed from "@/components/creator/CreatorPostFeed";
 import CreatorPostList from "@/components/creator/CreatorPostList";
 import CreatorProfileForm from "@/components/creator/CreatorProfileForm";
-import PostCard from "@/components/creator/PostCard";
 import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
@@ -81,11 +81,13 @@ export default function CreatorTabs({
           (isOwner ? (
             <CreatorPostList posts={visiblePosts} />
           ) : (
-            <div className="space-y-3">
-              {visiblePosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <CreatorPostFeed
+              posts={visiblePosts}
+              tiers={tiers}
+              creatorId={canJoin ? creator.id : null}
+              heldTierId={heldTierId}
+              onMembershipChange={onMembershipChange}
+            />
           ))}
         {active === "Memberships" && (
           <CreatorMembershipsList
