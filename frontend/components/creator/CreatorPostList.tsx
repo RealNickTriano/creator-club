@@ -3,15 +3,17 @@
 import { useState } from "react";
 import DeletePostDialog from "@/components/creator/DeletePostDialog";
 import PostCard from "@/components/creator/PostCard";
-import { deletePost } from "@/lib/api/posts";
+import { deletePost, updatePost } from "@/lib/api/posts";
 import type { Post } from "@/types/post";
 
 /**
  * The owner's manageable post list (the "Posts" and "Drafts" tabs), or an
  * empty-state nudge to compose one when there are none — pass `emptyTitle` /
  * `emptyHint` to fit the copy to what the list holds. Each card's Delete
- * opens {@link DeletePostDialog} to confirm; a confirmed delete calls
- * `onPostsChange` so the parent refetches the feed.
+ * opens {@link DeletePostDialog} to confirm, and Publish/Unpublish patches
+ * `published_at` directly; either way `onPostsChange` fires after so the
+ * parent refetches the feed (the post hops between the Posts and Drafts
+ * tabs).
  */
 export default function CreatorPostList({
   posts,
@@ -31,6 +33,9 @@ export default function CreatorPostList({
   const [deleting, setDeleting] = useState<Post | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  // The post whose publish state is being flipped — locks that card's buttons.
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState(false);
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -44,6 +49,21 @@ export default function CreatorPostList({
       setError(true);
     } finally {
       setPending(false);
+    }
+  }
+
+  async function setPublished(post: Post, published: boolean) {
+    setPublishError(false);
+    setPublishingId(post.id);
+    try {
+      await updatePost(post.id, {
+        published_at: published ? new Date().toISOString() : null,
+      });
+      onPostsChange?.();
+    } catch {
+      setPublishError(true);
+    } finally {
+      setPublishingId(null);
     }
   }
 
@@ -69,15 +89,22 @@ export default function CreatorPostList({
 
   return (
     <div className="space-y-3">
+      {publishError && (
+        <p className="text-sm text-red-600 dark:text-red-400">
+          Something went wrong — please try again.
+        </p>
+      )}
       {posts.map((post) => (
         <PostCard
           key={post.id}
           post={post}
           manageable
+          busy={post.id === publishingId}
           onDelete={(target) => {
             setError(false);
             setDeleting(target);
           }}
+          onSetPublished={setPublished}
         />
       ))}
       <DeletePostDialog

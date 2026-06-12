@@ -4,11 +4,11 @@ import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 
 const SMALL_BTN =
-  "border-border text-foreground hover:bg-foreground/5 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors";
+  "border-border text-foreground hover:bg-foreground/5 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
 const SMALL_BTN_PRIMARY =
-  "bg-foreground text-background inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs font-medium transition-opacity hover:opacity-90";
+  "bg-foreground text-background inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs font-medium transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50";
 const SMALL_BTN_DANGER =
-  "border-red-600/30 text-red-600 hover:bg-red-600/10 dark:border-red-400/30 dark:text-red-400 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors";
+  "border-red-600/30 text-red-600 hover:bg-red-600/10 dark:border-red-400/30 dark:text-red-400 inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * One post, rendered however the backend decided: unlocked posts show the full
@@ -20,16 +20,22 @@ const SMALL_BTN_DANGER =
 export default function PostCard({
   post,
   manageable = false,
+  busy = false,
   onUnlock,
   onDelete,
+  onSetPublished,
 }: {
   post: Post;
   /** Owner view: show the management actions and draft state. */
   manageable?: boolean;
+  /** A management action on this card is in flight: lock the buttons. */
+  busy?: boolean;
   /** Called with the unlocking tier when a locked post's CTA is clicked. */
   onUnlock?: (tier: Tier) => void;
   /** Called with the post when a manageable card's Delete is clicked. */
   onDelete?: (post: Post) => void;
+  /** Called when Publish (true) or Unpublish (false) is clicked. */
+  onSetPublished?: (post: Post, published: boolean) => void;
 }) {
   const isDraft = post.published_at === null;
   const locked = !post.access.allowed;
@@ -75,21 +81,32 @@ export default function PostCard({
 
       {manageable && (
         <div className="mt-3 flex gap-2">
-          <button type="button" className={SMALL_BTN}>
+          <button type="button" disabled={busy} className={SMALL_BTN}>
             Edit
           </button>
           {isDraft ? (
-            <button type="button" className={SMALL_BTN_PRIMARY}>
-              Publish
+            <button
+              type="button"
+              onClick={() => onSetPublished?.(post, true)}
+              disabled={busy}
+              className={SMALL_BTN_PRIMARY}
+            >
+              {busy ? "Publishing…" : "Publish"}
             </button>
           ) : (
-            <button type="button" className={SMALL_BTN}>
-              Unpublish
+            <button
+              type="button"
+              onClick={() => onSetPublished?.(post, false)}
+              disabled={busy}
+              className={SMALL_BTN}
+            >
+              {busy ? "Unpublishing…" : "Unpublish"}
             </button>
           )}
           <button
             type="button"
             onClick={() => onDelete?.(post)}
+            disabled={busy}
             className={SMALL_BTN_DANGER}
           >
             Delete
