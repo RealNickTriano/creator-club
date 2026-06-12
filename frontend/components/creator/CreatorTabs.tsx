@@ -9,17 +9,18 @@ import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
-const TABS = ["Posts", "Memberships", "Profile"] as const;
+const TABS = ["Posts", "Drafts", "Memberships", "Profile"] as const;
 type Tab = (typeof TABS)[number];
 
 const VIEWER_TABS: readonly Tab[] = ["Posts", "Memberships"];
 
 /**
  * The creator page's tab switcher, shared by both audiences: "Posts" shows the
- * feed, "Memberships" the tier list. With `isOwner` the posts are manageable
- * (drafts included), the tiers gain edit/add controls, and a "Profile" tab
- * holds the profile editor; viewers get the published feed and read-only
- * tiers. Holds its own active-tab state client-side.
+ * published feed, "Memberships" the tier list. With `isOwner` the posts are
+ * manageable and two more tabs appear — "Drafts" (with a count chip) holding
+ * the unpublished posts, and "Profile" with the profile editor; viewers get
+ * the published feed and read-only tiers. Holds its own active-tab state
+ * client-side.
  */
 export default function CreatorTabs({
   creator,
@@ -46,10 +47,10 @@ export default function CreatorTabs({
 }) {
   const [active, setActive] = useState<Tab>("Posts");
   const tabs = isOwner ? TABS : VIEWER_TABS;
-  // Drafts are owner-only; viewers see the published feed.
-  const visiblePosts = isOwner
-    ? posts
-    : posts.filter((post) => post.published_at !== null);
+  // Everyone's Posts tab shows the published feed; the owner's drafts live in
+  // their own tab (drafts never reach non-owners — see the Drafts panel).
+  const published = posts.filter((post) => post.published_at !== null);
+  const drafts = posts.filter((post) => post.published_at === null);
 
   return (
     <div>
@@ -67,13 +68,18 @@ export default function CreatorTabs({
               role="tab"
               aria-selected={selected}
               onClick={() => setActive(tab)}
-              className={`-mb-px cursor-pointer border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+              className={`-mb-px flex cursor-pointer items-center gap-1.5 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
                 selected
                   ? "border-foreground text-foreground"
                   : "text-muted hover:text-foreground border-transparent"
               }`}
             >
               {tab}
+              {tab === "Drafts" && (
+                <span className="bg-foreground/10 text-foreground-soft rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums">
+                  {drafts.length}
+                </span>
+              )}
             </button>
           );
         })}
@@ -82,16 +88,24 @@ export default function CreatorTabs({
       <div role="tabpanel" className="mt-5">
         {active === "Posts" &&
           (isOwner ? (
-            <CreatorPostList posts={visiblePosts} onNewPost={onNewPost} />
+            <CreatorPostList posts={published} onNewPost={onNewPost} />
           ) : (
             <CreatorPostFeed
-              posts={visiblePosts}
+              posts={published}
               tiers={tiers}
               creatorId={canJoin ? creator.id : null}
               heldTierId={heldTierId}
               onMembershipChange={onMembershipChange}
             />
           ))}
+        {active === "Drafts" && isOwner && (
+          <CreatorPostList
+            posts={drafts}
+            onNewPost={onNewPost}
+            emptyTitle="No drafts"
+            emptyHint="Posts you save without publishing wait here, visible only to you."
+          />
+        )}
         {active === "Memberships" && (
           <CreatorMembershipsList
             tiers={tiers}

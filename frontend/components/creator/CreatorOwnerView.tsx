@@ -11,7 +11,7 @@ import type { PublicUser } from "@/types/user";
 
 /**
  * The creator's own page: the header with owner controls, then tabs switching
- * between the manageable post feed, the membership tiers, and the profile
+ * between the published feed, drafts, the membership tiers, and the profile
  * editor. Shown when the signed-in user is this creator. Owns the "New post"
  * modal, opened from the header button or the empty feed's nudge; a saved
  * post closes it and fires `onPostsChange` so the feed refetches.
