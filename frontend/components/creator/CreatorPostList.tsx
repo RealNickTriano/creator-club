@@ -5,7 +5,14 @@ import type { Post } from "@/types/post";
  * The owner's post feed (the "Posts" tab): a manageable list of posts, or an
  * empty-state nudge to publish the first one when there are none.
  */
-export default function CreatorPostList({ posts }: { posts: Post[] }) {
+export default function CreatorPostList({
+  posts,
+  onNewPost,
+}: {
+  posts: Post[];
+  /** Opens the new-post composer (the empty state's CTA). */
+  onNewPost?: () => void;
+}) {
   if (posts.length === 0) {
     return (
       <div className="border-border bg-background rounded-xl border border-dashed p-8 text-center">
@@ -17,6 +24,7 @@ export default function CreatorPostList({ posts }: { posts: Post[] }) {
         </p>
         <button
           type="button"
+          onClick={onNewPost}
           className="bg-foreground text-background mt-4 inline-flex h-9 cursor-pointer items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90"
         >
           New post

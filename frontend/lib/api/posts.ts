@@ -1,5 +1,30 @@
 import { apiFetch, ApiError } from "@/lib/api/client";
-import type { Post } from "@/types/post";
+import type { NewPost, Post, UpdatePost } from "@/types/post";
+
+/**
+ * Creates a post (as a draft) authored by the signed-in user and returns it.
+ * Rejects with a 400 `ApiError` when `required_tier_id` isn't one of the
+ * author's own tiers.
+ */
+export function createPost(newPost: NewPost): Promise<Post> {
+  return apiFetch<Post>("/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newPost),
+  });
+}
+
+/**
+ * Updates one of the signed-in user's own posts and returns it — also how a
+ * draft is published (set `published_at`) or reverted (null it).
+ */
+export function updatePost(postId: string, update: UpdatePost): Promise<Post> {
+  return apiFetch<Post>(`/posts/${encodeURIComponent(postId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(update),
+  });
+}
 
 /**
  * Fetches a creator's published feed by handle, newest first, with the

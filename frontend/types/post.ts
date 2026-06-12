@@ -20,6 +20,31 @@ export interface PostAccess {
 }
 
 /**
+ * Fields to create a post via `POST /posts` — always created as a draft;
+ * publish by patching `published_at`. `required_tier_id: null` makes the post
+ * public; otherwise it must be one of the author's own tiers.
+ */
+export interface NewPost {
+  title: string;
+  teaser: string;
+  body: string;
+  required_tier_id: string | null;
+}
+
+/**
+ * Author-editable fields for `PATCH /posts/{id}` — omitted fields are left
+ * unchanged. Setting `published_at` publishes a draft; nulling it reverts to
+ * draft. Likewise `required_tier_id: null` makes the post public.
+ */
+export interface UpdatePost {
+  title?: string;
+  teaser?: string;
+  body?: string;
+  required_tier_id?: string | null;
+  published_at?: string | null;
+}
+
+/**
  * A post as the current viewer sees it (`GET /posts?handle=...`), entitlement
  * already applied: `teaser` is always present, `body` is `null` unless
  * `access.allowed`. `published_at: null` marks a draft (owner-only).

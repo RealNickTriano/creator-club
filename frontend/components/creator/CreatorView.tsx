@@ -55,7 +55,12 @@ export default function CreatorView({
   return (
     <HomeShell user={user}>
       {isOwner ? (
-        <CreatorOwnerView creator={creator} posts={posts} tiers={tiers} />
+        <CreatorOwnerView
+          creator={creator}
+          posts={posts}
+          tiers={tiers}
+          onPostsChange={refreshPosts}
+        />
       ) : (
         <CreatorViewerView
           creator={creator}

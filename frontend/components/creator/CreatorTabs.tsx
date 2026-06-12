@@ -29,6 +29,7 @@ export default function CreatorTabs({
   heldTierId = null,
   canJoin = false,
   onMembershipChange,
+  onNewPost,
 }: {
   creator: PublicUser;
   posts: Post[];
@@ -40,6 +41,8 @@ export default function CreatorTabs({
   canJoin?: boolean;
   /** Called after the viewer joins or changes tier, to refetch memberships. */
   onMembershipChange?: () => void;
+  /** Owner: opens the new-post composer (the empty feed's nudge). */
+  onNewPost?: () => void;
 }) {
   const [active, setActive] = useState<Tab>("Posts");
   const tabs = isOwner ? TABS : VIEWER_TABS;
@@ -79,7 +82,7 @@ export default function CreatorTabs({
       <div role="tabpanel" className="mt-5">
         {active === "Posts" &&
           (isOwner ? (
-            <CreatorPostList posts={visiblePosts} />
+            <CreatorPostList posts={visiblePosts} onNewPost={onNewPost} />
           ) : (
             <CreatorPostFeed
               posts={visiblePosts}
