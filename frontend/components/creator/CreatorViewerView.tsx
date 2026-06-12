@@ -1,6 +1,6 @@
 import CreatorIdentity from "@/components/creator/CreatorIdentity";
 import CreatorTabs from "@/components/creator/CreatorTabs";
-import { EXAMPLE_VIEWER_POSTS } from "@/lib/placeholders/creator";
+import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
@@ -12,12 +12,15 @@ import type { PublicUser } from "@/types/user";
  */
 export default function CreatorViewerView({
   creator,
+  posts,
   tiers,
   heldTierId = null,
   canJoin = false,
   onMembershipChange,
 }: {
   creator: PublicUser;
+  /** The published feed with this viewer's entitlements applied. */
+  posts: Post[];
   tiers: Tier[];
   /** The tier the viewer holds on this creator, marked in the Memberships tab. */
   heldTierId?: string | null;
@@ -32,7 +35,7 @@ export default function CreatorViewerView({
       <div className="mt-8">
         <CreatorTabs
           creator={creator}
-          posts={EXAMPLE_VIEWER_POSTS}
+          posts={posts}
           tiers={tiers}
           isOwner={false}
           heldTierId={heldTierId}

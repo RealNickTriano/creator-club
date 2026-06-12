@@ -4,6 +4,7 @@ import BrandLoader from "@/components/brand/BrandLoader";
 import CreatorOwnerView from "@/components/creator/CreatorOwnerView";
 import CreatorViewerView from "@/components/creator/CreatorViewerView";
 import HomeShell from "@/components/home/HomeShell";
+import { useCreatorPosts } from "@/lib/hooks/useCreatorPosts";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 import { useMemberships } from "@/lib/hooks/useMemberships";
 import type { Tier } from "@/types/tier";
@@ -33,7 +34,16 @@ export default function CreatorView({
     refresh: refreshMemberships,
   } = useMemberships();
 
-  if (loading || membershipsLoading) {
+  const isOwner = !loading && user?.id === creator.id;
+  // Owner: include drafts. Held off until the user resolves so the feed isn't
+  // fetched once without drafts and again with them.
+  const {
+    posts,
+    loading: postsLoading,
+    refresh: refreshPosts,
+  } = useCreatorPosts(loading ? null : creator.handle, isOwner);
+
+  if (loading || membershipsLoading || postsLoading) {
     return <BrandLoader />;
   }
 
@@ -42,19 +52,22 @@ export default function CreatorView({
     memberships.find((m) => m.creator_id === creator.id && m.active)?.tier.id ??
     null;
 
-  const isOwner = user?.id === creator.id;
-
   return (
     <HomeShell user={user}>
       {isOwner ? (
-        <CreatorOwnerView creator={creator} tiers={tiers} />
+        <CreatorOwnerView creator={creator} posts={posts} tiers={tiers} />
       ) : (
         <CreatorViewerView
           creator={creator}
+          posts={posts}
           tiers={tiers}
           heldTierId={heldTierId}
           canJoin={user !== null}
-          onMembershipChange={refreshMemberships}
+          onMembershipChange={() => {
+            refreshMemberships();
+            // A new or changed tier can unlock posts — refetch the feed too.
+            refreshPosts();
+          }}
         />
       )}
     </HomeShell>
