@@ -16,6 +16,9 @@ There is one kind of account: a **user**. Any user can act as a *creator* (by
 defining tiers and publishing posts) and as a *fan* (by holding a membership to
 another user). "Creator" and "fan" are roles a user plays, not separate records.
 
+<img width="1440" height="1166" alt="creator-club-thumbnail" src="https://github.com/user-attachments/assets/c877b3df-3ae5-4e00-91cc-b0d71267224d" />
+
+
 ## How it works
 
 Membership platforms all reduce to the same access-control shape:
