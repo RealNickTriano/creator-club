@@ -23,6 +23,7 @@ export default function PostCard({
   busy = false,
   onUnlock,
   onDelete,
+  onEdit,
   onSetPublished,
 }: {
   post: Post;
@@ -34,6 +35,8 @@ export default function PostCard({
   onUnlock?: (tier: Tier) => void;
   /** Called with the post when a manageable card's Delete is clicked. */
   onDelete?: (post: Post) => void;
+  /** Called with the post when a manageable card's Edit is clicked. */
+  onEdit?: (post: Post) => void;
   /** Called when Publish (true) or Unpublish (false) is clicked. */
   onSetPublished?: (post: Post, published: boolean) => void;
 }) {
@@ -81,7 +84,12 @@ export default function PostCard({
 
       {manageable && (
         <div className="mt-3 flex gap-2">
-          <button type="button" disabled={busy} className={SMALL_BTN}>
+          <button
+            type="button"
+            onClick={() => onEdit?.(post)}
+            disabled={busy}
+            className={SMALL_BTN}
+          >
             Edit
           </button>
           {isDraft ? (

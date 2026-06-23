@@ -11,36 +11,45 @@ const FIELD_CLASS =
   "text-sm outline-none transition-colors";
 
 /**
- * The new-post composer, shown in a modal from the owner's page. Title,
- * teaser (the part everyone sees), body, and which tier unlocks it; "Save
- * draft" keeps it owner-only while "Publish" puts it in the feed right away.
- * On success the saved post is handed to `onSaved`.
+ * The post composer, shown in a modal from the owner's page. Title, teaser
+ * (the part everyone sees), body, and which tier unlocks it. Creates a post,
+ * or edits the one passed via `post` (fields are prefilled; state initializes
+ * on mount, so remount — e.g. with a `key` — to switch posts). On success the
+ * saved post is handed to `onSaved`.
  *
- * State initializes on mount, so the modal remounting it each open gives a
- * fresh form. If a save fails after the draft was created (e.g. publishing
- * didn't go through), retrying updates that draft instead of creating a
- * duplicate.
+ * Drafts (and new posts) offer "Save draft" or "Publish"; an already
+ * published post just gets "Save changes" — unpublishing lives on the card.
+ * If a save fails after the draft was created (e.g. publishing didn't go
+ * through), retrying updates that draft instead of creating a duplicate.
  */
 export default function PostForm({
+  post,
   tiers,
   onSaved,
   onCancel,
 }: {
+  /** The post to edit; omit to compose a new one. */
+  post?: Post;
   /** The owner's ladder, lowest rank first — the access choices. */
   tiers: Tier[];
   onSaved: (post: Post) => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [teaser, setTeaser] = useState("");
-  const [body, setBody] = useState("");
+  const [title, setTitle] = useState(post?.title ?? "");
+  const [teaser, setTeaser] = useState(post?.teaser ?? "");
+  const [body, setBody] = useState(post?.body ?? "");
   // The unlocking tier's id; "" is the public option (no tier required).
-  const [requiredTierId, setRequiredTierId] = useState("");
+  const [requiredTierId, setRequiredTierId] = useState(
+    post?.required_tier_id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<"draft" | "publish" | null>(null);
-  // Set once the draft exists on the backend, so retries update it in place.
-  const created = useRef<Post | null>(null);
+  const [pending, setPending] = useState<"save" | "publish" | null>(null);
+  // The post being edited, set once a new post's draft exists on the backend
+  // so retries update it in place.
+  const created = useRef<Post | null>(post ?? null);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  const isPublished = post?.published_at != null;
 
   // The form mounts when the modal opens, so focus the first field once.
   useEffect(() => {
@@ -59,7 +68,7 @@ export default function PostForm({
     }
 
     setError(null);
-    setPending(publish ? "publish" : "draft");
+    setPending(publish ? "publish" : "save");
     const fields = {
       title: trimmedTitle,
       teaser: teaser.trim(),
@@ -86,7 +95,7 @@ export default function PostForm({
   return (
     <div>
       <h2 id="post-form-title" className="text-lg font-semibold tracking-tight">
-        New post
+        {post ? "Edit post" : "New post"}
       </h2>
       <p className="text-muted mt-1 text-sm">
         The teaser is visible to everyone; the body unlocks with the tier you
@@ -96,7 +105,9 @@ export default function PostForm({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          save(true);
+          // Submit runs the primary action: publish, or for an already
+          // published post, save in place.
+          save(!isPublished);
         }}
         className="mt-4 space-y-3"
       >
@@ -171,20 +182,28 @@ export default function PostForm({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => save(false)}
-            disabled={pending !== null}
-            className="border-border text-foreground hover:bg-foreground/5 inline-flex h-9 cursor-pointer items-center rounded-full border px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
-          >
-            {pending === "draft" ? "Saving…" : "Save draft"}
-          </button>
+          {!isPublished && (
+            <button
+              type="button"
+              onClick={() => save(false)}
+              disabled={pending !== null}
+              className="border-border text-foreground hover:bg-foreground/5 inline-flex h-9 cursor-pointer items-center rounded-full border px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
+            >
+              {pending === "save" ? "Saving…" : "Save draft"}
+            </button>
+          )}
           <button
             type="submit"
             disabled={pending !== null}
             className="bg-foreground text-background inline-flex h-9 cursor-pointer items-center rounded-full px-4 text-sm font-medium transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
           >
-            {pending === "publish" ? "Publishing…" : "Publish"}
+            {isPublished
+              ? pending === "save"
+                ? "Saving…"
+                : "Save changes"
+              : pending === "publish"
+                ? "Publishing…"
+                : "Publish"}
           </button>
         </div>
       </form>

@@ -18,6 +18,7 @@ import type { Post } from "@/types/post";
 export default function CreatorPostList({
   posts,
   onNewPost,
+  onEditPost,
   onPostsChange,
   emptyTitle = "No posts yet",
   emptyHint = "Publish your first post to start sharing with members.",
@@ -25,6 +26,8 @@ export default function CreatorPostList({
   posts: Post[];
   /** Opens the new-post composer (the empty state's CTA). */
   onNewPost?: () => void;
+  /** Opens the composer in edit mode on this post (each card's Edit). */
+  onEditPost?: (post: Post) => void;
   /** Called after a post is deleted, to refetch the feed. */
   onPostsChange?: () => void;
   emptyTitle?: string;
@@ -104,6 +107,7 @@ export default function CreatorPostList({
             setError(false);
             setDeleting(target);
           }}
+          onEdit={onEditPost}
           onSetPublished={setPublished}
         />
       ))}
