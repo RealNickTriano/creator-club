@@ -15,7 +15,7 @@ export default function CreatorHeader({
   onNewPost?: () => void;
 }) {
   return (
-    <CreatorIdentity creator={creator} handleSuffix=" this is your page">
+    <CreatorIdentity creator={creator}>
       <button
         type="button"
         onClick={onNewPost}
