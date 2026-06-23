@@ -1,5 +1,6 @@
 import DemoSignInButton from "@/components/auth/DemoSignInButton";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import BrandMark from "@/components/brand/BrandMark";
 import Wordmark from "@/components/brand/Wordmark";
 
 /**
@@ -15,8 +16,11 @@ export default async function LoginPage({
   const { next } = await searchParams;
   const nextPath = typeof next === "string" ? next : undefined;
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-10 px-6">
-      <Wordmark />
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-10 px-6">
+      <div className="absolute top-6 left-6">
+        <Wordmark />
+      </div>
+      <BrandMark className="h-20 w-20" />
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
         <p className="text-muted text-sm">
