@@ -28,12 +28,14 @@ HANDLE_PATTERN = r"^[a-z0-9_]{3,30}$"
 class NewUser(BaseModel):
   """Fields needed to create a user, sourced from the Google profile.
 
-  ``google_name`` and ``google_avatar_url`` are optional because Google may
-  omit them. ``personal_name`` — the name Creator Club addresses the user by —
-  defaults to ``google_name`` in the service when not supplied.
+  ``google_sub`` is optional: Google sign-in always supplies it, but a demo
+  account (the "continue as demo" path) has no Google identity and leaves it
+  unset. ``google_name`` and ``google_avatar_url`` are optional because Google
+  may omit them. ``personal_name`` — the name Creator Club addresses the user
+  by — defaults to ``google_name`` in the service when not supplied.
   """
 
-  google_sub: str
+  google_sub: str | None = None
   google_email: str
   google_name: str | None = None
   google_avatar_url: str | None = None

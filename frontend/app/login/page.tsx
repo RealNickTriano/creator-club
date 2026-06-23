@@ -1,3 +1,4 @@
+import DemoSignInButton from "@/components/auth/DemoSignInButton";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import Wordmark from "@/components/brand/Wordmark";
 
@@ -12,6 +13,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string | string[] }>;
 }) {
   const { next } = await searchParams;
+  const nextPath = typeof next === "string" ? next : undefined;
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-10 px-6">
       <Wordmark />
@@ -21,7 +23,18 @@ export default async function LoginPage({
           Sign in to continue to Creator Club.
         </p>
       </div>
-      <GoogleSignInButton next={typeof next === "string" ? next : undefined} />
+      <div className="flex w-full max-w-xs flex-col items-center gap-4">
+        <GoogleSignInButton next={nextPath} />
+        <div className="flex w-full items-center gap-3">
+          <span className="border-border h-px flex-1 border-t" />
+          <span className="text-muted text-xs">or</span>
+          <span className="border-border h-px flex-1 border-t" />
+        </div>
+        <DemoSignInButton next={nextPath} />
+        <p className="text-muted text-center text-xs text-balance">
+          Just exploring? The demo is your own sandbox to play in.
+        </p>
+      </div>
     </main>
   );
 }

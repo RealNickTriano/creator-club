@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.db import get_db
+from backend.demo import service as demo_service
 from backend.user import service as user_service
 from backend.user.models import User
 from backend.user.schemas import NewUser, PrivateUser
@@ -134,6 +135,34 @@ async def google_callback(
   # The destination rides after the random token in the state param, which
   # fastapi-sso has already matched against its sso_state cookie.
   _, _, next_path = (request.query_params.get("state") or "").partition(":")
+  return RedirectResponse(
+    url=f"{settings.frontend_url.rstrip('/')}{_safe_next_path(next_path)}"
+  )
+
+
+@router.get("/demo/login")
+async def demo_login(
+  request: Request,
+  db: Annotated[AsyncSession, Depends(get_db)],
+  next_path: Annotated[str, Query(alias="next")] = "/home",
+) -> RedirectResponse:
+  """Start a demo session: mint a fresh, empty account and sign in as it.
+
+  The no-Google counterpart to :func:`google_login` + :func:`google_callback`,
+  collapsed into one hop — there's no consent round trip, so we create the
+  account, stash its id in the session, and redirect straight into the app at
+  the validated ``next`` path (defaulting to /home), exactly like the callback.
+
+  Each call mints its own account, so concurrent demos never share state. The
+  session is flagged ``is_demo`` so the app (and later, cleanup) can tell.
+  """
+  if not settings.demo_enabled:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+  demo = await demo_service.create_demo_user(db)
+  await user_service.stamp_login(db, demo)
+  request.session["user_id"] = str(demo.id)
+  request.session["is_demo"] = True
   return RedirectResponse(
     url=f"{settings.frontend_url.rstrip('/')}{_safe_next_path(next_path)}"
   )

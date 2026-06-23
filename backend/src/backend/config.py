@@ -26,5 +26,9 @@ class Settings(BaseSettings):
   session_secret: str
   frontend_url: str
 
+  # Gates the "continue as demo" sign-in path (GET /auth/demo/login). Set to
+  # false to hide the demo entirely (the route then 404s).
+  demo_enabled: bool = True
+
 
 settings = Settings()

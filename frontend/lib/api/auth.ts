@@ -14,6 +14,17 @@ export function googleLoginUrl(next?: string): string {
   return apiUrl(`/auth/google/login${query}`);
 }
 
+/**
+ * URL that starts a demo session. Like {@link googleLoginUrl}, this is a
+ * full-page navigation target (an `<a href>`), not a fetch — the backend mints
+ * a fresh, empty demo account, sets the session cookie, and redirects back into
+ * the app (to `next` when given, else /home). No Google account needed.
+ */
+export function demoLoginUrl(next?: string): string {
+  const query = next ? `?next=${encodeURIComponent(next)}` : "";
+  return apiUrl(`/auth/demo/login${query}`);
+}
+
 /** The current authenticated user. Rejects with a 401 `ApiError` if signed out. */
 export function getCurrentUser(): Promise<User> {
   return apiFetch<User>("/auth/me");
