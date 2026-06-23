@@ -1,5 +1,6 @@
 import PostBadge from "@/components/creator/PostBadge";
 import PostLockPanel from "@/components/creator/PostLockPanel";
+import { postDateLabel } from "@/lib/utils/postDate";
 import type { Post } from "@/types/post";
 import type { Tier } from "@/types/tier";
 
@@ -42,12 +43,7 @@ export default function PostCard({
 }) {
   const isDraft = post.published_at === null;
   const locked = !post.access.allowed;
-  const dateLabel = post.published_at
-    ? new Date(post.published_at).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
-    : "Not published";
+  const dateLabel = postDateLabel(post.published_at);
 
   return (
     <article className="border-border bg-background rounded-xl border p-4">
