@@ -39,4 +39,6 @@ export interface User {
   google_email: string;
   last_logged_in_at: string;
   created_at: string;
+  /** True for the throwaway "continue as demo" account. */
+  is_demo: boolean;
 }

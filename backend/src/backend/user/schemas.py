@@ -20,7 +20,9 @@ the wire — but it *is* a creation input, hence its presence on :class:`NewUser
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from backend.demo.identity import is_demo_email
 
 HANDLE_PATTERN = r"^[a-z0-9_]{3,30}$"
 
@@ -74,10 +76,17 @@ class PrivateUser(PublicUser):
   """A user viewing themselves — adds owner-only fields.
 
   ``personal_name`` is how Creator Club addresses the user (greetings,
-  email) — it's not part of the public profile.
+  email) — it's not part of the public profile. ``is_demo`` lets the client
+  surface "you're in demo mode" without re-deriving the rule.
   """
 
   google_email: str
   personal_name: str | None
   last_logged_in_at: datetime | None
   created_at: datetime
+
+  @computed_field  # type: ignore[prop-decorator]
+  @property
+  def is_demo(self) -> bool:
+    """Whether this is a throwaway 'continue as demo' account."""
+    return is_demo_email(self.google_email)

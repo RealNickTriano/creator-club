@@ -16,7 +16,7 @@ from backend.post import repository as post_repository
 from backend.tier import service as tier_service
 from backend.user import repository as user_repository
 from backend.user import service as user_service
-from backend.user.schemas import NewUser
+from backend.user.schemas import NewUser, PrivateUser
 
 
 async def test_create_demo_user_has_synthetic_demo_identity(
@@ -81,3 +81,16 @@ async def test_is_demo_is_false_for_a_regular_account(
   )
 
   assert not is_demo(regular)
+
+
+async def test_private_user_serializes_is_demo(db_session: AsyncSession) -> None:
+  """`/auth/me` carries the demo flag so the client needn't re-derive it."""
+  demo = await service.create_demo_user(db_session)
+  token = uuid.uuid4().hex
+  regular = await user_service.create_user(
+    db_session,
+    NewUser(google_sub=f"sub-{token}", google_email=f"{token}@example.com"),
+  )
+
+  assert PrivateUser.model_validate(demo).is_demo is True
+  assert PrivateUser.model_validate(regular).is_demo is False
