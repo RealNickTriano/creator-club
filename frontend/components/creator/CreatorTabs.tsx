@@ -99,6 +99,7 @@ export default function CreatorTabs({
               onNewPost={onNewPost}
               onEditPost={onEditPost}
               onPostsChange={onPostsChange}
+              showNewPostButton
             />
           ) : (
             <CreatorPostFeed

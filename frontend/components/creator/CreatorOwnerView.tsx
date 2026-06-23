@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import CreatorHeader from "@/components/creator/CreatorHeader";
+import CreatorIdentity from "@/components/creator/CreatorIdentity";
 import CreatorTabs from "@/components/creator/CreatorTabs";
 import PostForm from "@/components/creator/PostForm";
 import Modal from "@/components/ui/Modal";
@@ -10,12 +10,12 @@ import type { Tier } from "@/types/tier";
 import type { PublicUser } from "@/types/user";
 
 /**
- * The creator's own page: the header with owner controls, then tabs switching
- * between the published feed, drafts, the membership tiers, and the profile
- * editor. Shown when the signed-in user is this creator. Owns the post
- * composer modal — blank from the header's "New post" or the empty feed's
- * nudge, prefilled from a card's Edit; a saved post closes it and fires
- * `onPostsChange` so the feed refetches.
+ * The creator's own page: the identity header, then tabs switching between the
+ * published feed, drafts, the membership tiers, and the profile editor. Shown
+ * when the signed-in user is this creator. Owns the post composer modal — blank
+ * from the Posts tab's "New post" button or the empty feed's nudge, prefilled
+ * from a card's Edit; a saved post closes it and fires `onPostsChange` so the
+ * feed refetches.
  */
 export default function CreatorOwnerView({
   creator,
@@ -40,7 +40,7 @@ export default function CreatorOwnerView({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <CreatorHeader creator={creator} onNewPost={() => setComposing(true)} />
+      <CreatorIdentity creator={creator} />
       <div className="mt-8">
         <CreatorTabs
           creator={creator}

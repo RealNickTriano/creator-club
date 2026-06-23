@@ -20,12 +20,15 @@ export default function CreatorPostList({
   onNewPost,
   onEditPost,
   onPostsChange,
+  showNewPostButton = false,
   emptyTitle = "No posts yet",
   emptyHint = "Publish your first post to start sharing with members.",
 }: {
   posts: Post[];
-  /** Opens the new-post composer (the empty state's CTA). */
+  /** Opens the new-post composer (the empty state's CTA and footer button). */
   onNewPost?: () => void;
+  /** Show a "New post" button below the list, once there's at least one post. */
+  showNewPostButton?: boolean;
   /** Opens the composer in edit mode on this post (each card's Edit). */
   onEditPost?: (post: Post) => void;
   /** Called after a post is deleted, to refetch the feed. */
@@ -96,6 +99,15 @@ export default function CreatorPostList({
         <p className="text-sm text-red-600 dark:text-red-400">
           Something went wrong — please try again.
         </p>
+      )}
+      {showNewPostButton && (
+        <button
+          type="button"
+          onClick={onNewPost}
+          className="border-border text-muted hover:border-foreground/30 hover:text-foreground flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed p-4 text-sm font-medium transition-colors"
+        >
+          + New post
+        </button>
       )}
       {posts.map((post) => (
         <PostCard
