@@ -1,9 +1,11 @@
 "use client";
 
 import BrandLoader from "@/components/brand/BrandLoader";
+import CheckoutReturnModal from "@/components/creator/CheckoutReturnModal";
 import CreatorOwnerView from "@/components/creator/CreatorOwnerView";
 import CreatorViewerView from "@/components/creator/CreatorViewerView";
 import HomeShell from "@/components/home/HomeShell";
+import { useCheckoutReturn } from "@/lib/hooks/useCheckoutReturn";
 import { useCreatorPosts } from "@/lib/hooks/useCreatorPosts";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 import { useMemberships } from "@/lib/hooks/useMemberships";
@@ -43,8 +45,26 @@ export default function CreatorView({
     refresh: refreshPosts,
   } = useCreatorPosts(loading ? null : creator.handle, isOwner);
 
+  // Handle the return from Stripe Checkout: poll until the webhook provisions
+  // the membership, then refetch so the new tier's posts unlock.
+  const checkout = useCheckoutReturn(creator.id, () => {
+    refreshMemberships();
+    refreshPosts();
+  });
+  const checkoutModal = (
+    <CheckoutReturnModal
+      status={checkout.status}
+      onDismiss={checkout.dismiss}
+    />
+  );
+
   if (loading || membershipsLoading || postsLoading) {
-    return <BrandLoader />;
+    return (
+      <>
+        {checkoutModal}
+        <BrandLoader />
+      </>
+    );
   }
 
   // The viewer's active membership with this creator, if they hold one.
@@ -54,6 +74,7 @@ export default function CreatorView({
 
   return (
     <HomeShell user={user}>
+      {checkoutModal}
       {isOwner ? (
         <CreatorOwnerView
           creator={creator}
