@@ -7,6 +7,7 @@ Each feature owns its router; list them here and they're attached to the app by
 from fastapi import FastAPI
 
 from backend.auth.router import router as auth_router
+from backend.billing.router import router as billing_router
 from backend.health.router import router as health_router
 from backend.membership.router import router as membership_router
 from backend.post.router import router as post_router
@@ -21,6 +22,7 @@ _routers = (
   tier_router,
   membership_router,
   post_router,
+  billing_router,
   webhooks_router,
 )
 

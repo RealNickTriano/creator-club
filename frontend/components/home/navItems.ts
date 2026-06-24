@@ -14,6 +14,6 @@ export type NavItem = {
 /** Top-level links shown in the sidebar (no heading). */
 export const NAV_TOP: NavItem[] = [
   { href: "/home", label: "Home", Icon: HomeIcon },
-  { href: "#", label: "Billing", Icon: CardIcon },
+  { href: "/billing", label: "Billing", Icon: CardIcon },
   { href: "#", label: "Settings", Icon: SettingsIcon },
 ];

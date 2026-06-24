@@ -1,6 +1,6 @@
 """Stripe billing integration (test mode only — see stripe-billing-plan.html).
 
-Two jobs live here:
+The Stripe-facing operations behind the app's billing:
 
 * **Tier pricing** (Phase 1) — keep paid tiers in sync with Stripe **Products**
   and **Prices** so a tier can be sold. A tier maps to one Product (its
@@ -13,6 +13,9 @@ Two jobs live here:
   Stripe-hosted Checkout page (:func:`create_subscription_checkout`), each fan
   backed by one Stripe **Customer** (:func:`create_customer`). The membership
   itself is provisioned later, from the resulting webhook (Phase 3).
+
+* **Self-service** (:func:`create_billing_portal_session`) — a fan manages
+  their own subscriptions through the hosted Stripe Customer Portal.
 """
 
 import stripe
@@ -150,6 +153,23 @@ async def create_subscription_checkout(
       # (invoice.paid, subscription.updated) can also be mapped to our rows.
       "subscription_data": {"metadata": metadata},
     }
+  )
+  return session.url
+
+
+async def create_billing_portal_session(
+  customer_id: str, return_url: str
+) -> str:
+  """Create a Stripe Customer Portal session and return its hosted URL.
+
+  The portal is Stripe-hosted self-service: the fan can cancel, switch payment
+  method, or view invoices, then return to ``return_url``. Requires the portal
+  to be enabled once in the Dashboard (test mode: Settings → Billing → Customer
+  portal); any resulting subscription changes flow back via the same webhooks.
+  """
+  client = get_stripe()
+  session = await client.v1.billing_portal.sessions.create_async(
+    {"customer": customer_id, "return_url": return_url}
   )
   return session.url
 
