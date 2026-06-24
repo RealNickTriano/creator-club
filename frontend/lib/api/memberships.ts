@@ -39,3 +39,16 @@ export function isCheckoutSession(
 ): result is CheckoutSession {
   return "checkout_url" in result;
 }
+
+/**
+ * Cancels the signed-in user's membership with a creator. A paid membership's
+ * Stripe subscription is scheduled to end at the period close, so access
+ * continues until then; the returned membership carries the `canceled_at` stamp.
+ */
+export function cancelMembership(creatorId: string): Promise<Membership> {
+  return apiFetch<Membership>("/memberships/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ creator_id: creatorId }),
+  });
+}

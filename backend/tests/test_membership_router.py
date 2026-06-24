@@ -14,10 +14,13 @@ from fastapi import HTTPException, Response
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import billing
 from backend.auth.router import get_current_user
 from backend.main import app
+from backend.membership import repository as membership_repository
 from backend.membership import router as membership_router
 from backend.membership.schemas import (
+  CancelMembership,
   CheckoutSession,
   NewMembership,
   PublicMembership,
@@ -207,6 +210,60 @@ async def test_join_returns_201_with_tier_and_status(
   assert payload.creator_id == creator.id
   assert payload.tier.id == tier.id
   assert payload.active is True
+
+
+async def test_cancel_unknown_membership_returns_404(
+  db_session: AsyncSession,
+) -> None:
+  member = await _create_user(db_session)
+
+  with pytest.raises(HTTPException) as exc_info:
+    await membership_router.cancel_membership(
+      CancelMembership(creator_id=uuid.uuid4()), member, db_session
+    )
+  assert exc_info.value.status_code == 404
+
+
+async def test_cancel_stamps_canceled_at(db_session: AsyncSession) -> None:
+  """Cancelling a (free) membership records the canceled timestamp."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_tier(db_session, creator)
+  await _post(db_session, member, creator.id, tier.id)
+
+  result = await membership_router.cancel_membership(
+    CancelMembership(creator_id=creator.id), member, db_session
+  )
+
+  assert result.canceled_at is not None
+
+
+async def test_cancel_paid_membership_cancels_stripe_subscription(
+  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """A paid membership's Stripe subscription is scheduled to cancel."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_tier(db_session, creator, price_cents=500)
+  membership = await membership_repository.create_membership(
+    db_session, member.id, creator.id, tier.id
+  )
+  membership.stripe_subscription_id = "sub_123"
+  await membership_repository.update_membership(db_session, membership)
+
+  canceled: dict = {}
+
+  async def _record(subscription_id: str) -> None:
+    canceled["id"] = subscription_id
+
+  monkeypatch.setattr(billing, "cancel_subscription", _record)
+
+  result = await membership_router.cancel_membership(
+    CancelMembership(creator_id=creator.id), member, db_session
+  )
+
+  assert canceled["id"] == "sub_123"
+  assert result.canceled_at is not None
 
 
 async def test_repeat_post_returns_200(db_session: AsyncSession) -> None:

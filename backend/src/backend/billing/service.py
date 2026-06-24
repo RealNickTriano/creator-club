@@ -196,3 +196,17 @@ async def get_subscription(subscription_id: str) -> stripe.Subscription:
   """Retrieve a Subscription — its items carry ``current_period_end``."""
   client = get_stripe()
   return await client.v1.subscriptions.retrieve_async(subscription_id)
+
+
+async def cancel_subscription(subscription_id: str) -> None:
+  """Schedule a subscription to end at the close of the current period.
+
+  Access continues until then (the fan keeps what they paid for); when the
+  period lapses Stripe ends the subscription and the resulting webhooks lapse
+  the membership. Cancelling at period end — rather than immediately — is the
+  friendly default for memberships.
+  """
+  client = get_stripe()
+  await client.v1.subscriptions.update_async(
+    subscription_id, {"cancel_at_period_end": True}
+  )

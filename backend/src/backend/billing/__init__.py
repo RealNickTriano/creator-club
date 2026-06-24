@@ -6,6 +6,7 @@ then ``billing.<fn>`` (and tests can patch ``billing.<fn>`` in one place).
 
 from backend.billing.service import (
   archive_price,
+  cancel_subscription,
   construct_event,
   create_billing_portal_session,
   create_customer,
@@ -16,6 +17,7 @@ from backend.billing.service import (
 
 __all__ = [
   "archive_price",
+  "cancel_subscription",
   "construct_event",
   "create_billing_portal_session",
   "create_customer",

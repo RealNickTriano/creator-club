@@ -12,6 +12,7 @@ from backend.entitlements import membership_is_active_now
 from backend.membership import service as membership_service
 from backend.membership.models import Membership
 from backend.membership.schemas import (
+  CancelMembership,
   CheckoutSession,
   NewMembership,
   PublicMembership,
@@ -37,6 +38,7 @@ def _to_public(
     started_at=membership.started_at,
     current_period_end=membership.current_period_end,
     canceled_at=membership.canceled_at,
+    status=membership.status,
     tier=PublicTier.model_validate(tier),
     creator=PublicUser.model_validate(creator),
     active=membership_is_active_now(membership.current_period_end),
@@ -105,4 +107,33 @@ async def set_membership(
   )
   if created:
     response.status_code = status.HTTP_201_CREATED
+  return _to_public(membership, tier, creator)
+
+
+@router.post("/cancel", response_model=PublicMembership)
+async def cancel_membership(
+  body: CancelMembership,
+  user: Annotated[User, Depends(get_current_user)],
+  db: Annotated[AsyncSession, Depends(get_db)],
+) -> PublicMembership:
+  """Cancel the current user's membership with a creator.
+
+  A paid membership's Stripe subscription is scheduled to end at period close,
+  so access continues until then; the row is stamped canceled now for immediate
+  feedback (the webhook reconfirms it). 404 if no such membership.
+  """
+  membership = await membership_service.get_membership_by_member_and_creator(
+    db, user.id, body.creator_id
+  )
+  if membership is None:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND, detail="Membership not found."
+    )
+
+  if membership.stripe_subscription_id:
+    await billing.cancel_subscription(membership.stripe_subscription_id)
+  membership = await membership_service.mark_canceled(db, membership)
+
+  tier = await tier_service.get_tier_by_id(db, membership.tier_id)
+  creator = await user_service.get_user_by_id(db, membership.creator_id)
   return _to_public(membership, tier, creator)

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/auth/UserAvatar";
 import BrandLoader from "@/components/brand/BrandLoader";
+import BillingSubscriptionModal from "@/components/creator/BillingSubscriptionModal";
+import SubscriptionStatusBadge from "@/components/creator/SubscriptionStatusBadge";
 import HomeShell from "@/components/home/HomeShell";
 import SectionHeading from "@/components/home/SectionHeading";
 import TierPill from "@/components/home/TierPill";
@@ -13,26 +14,25 @@ import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 import { useMemberships } from "@/lib/hooks/useMemberships";
 import { displayName } from "@/lib/utils/names";
 import { formatPrice } from "@/lib/utils/price";
-
-/** An absolute renewal date, e.g. "Jul 8, 2026"; em dash when open-ended. */
-function renewalDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+import { renewalDate } from "@/lib/utils/renewalDate";
+import { subscriptionStatus } from "@/lib/utils/subscriptionStatus";
+import type { Membership } from "@/types/membership";
 
 /**
  * The Billing page: a table of the signed-in user's active paid subscriptions —
- * creator, tier, monthly cost and renewal date. Free memberships aren't billed,
- * so they don't appear.
+ * creator, tier, monthly cost and renewal date. Clicking a row opens a modal to
+ * upgrade, downgrade, or cancel that subscription. Free memberships aren't
+ * billed, so they don't appear.
  */
 export default function BillingPage() {
   const { user, loading, error } = useCurrentUser();
-  const { memberships, loading: membershipsLoading } = useMemberships();
+  const {
+    memberships,
+    loading: membershipsLoading,
+    refresh,
+  } = useMemberships();
   const router = useRouter();
+  const [selected, setSelected] = useState<Membership | null>(null);
 
   // Bounce signed-out visitors (no session / 401) back to login.
   useEffect(() => {
@@ -43,11 +43,19 @@ export default function BillingPage() {
     return <BrandLoader />;
   }
 
-  // Subscriptions are active memberships on a priced tier; free tiers cost
-  // nothing, so there's no billing to show for them.
-  const subscriptions = memberships.filter(
-    (m) => m.active && m.tier.price_cents > 0,
-  );
+  // Every membership on a priced tier is a subscription — active or ended;
+  // free tiers cost nothing, so there's no billing to show for them. Grouped by
+  // status (healthy first, ended last), then most recent period end first.
+  const subscriptions = memberships
+    .filter((m) => m.tier.price_cents > 0)
+    .sort((a, b) => {
+      const byStatus = subscriptionStatus(a).rank - subscriptionStatus(b).rank;
+      if (byStatus !== 0) return byStatus;
+      return (
+        new Date(b.current_period_end ?? 0).getTime() -
+        new Date(a.current_period_end ?? 0).getTime()
+      );
+    });
 
   return (
     <HomeShell user={user}>
@@ -55,7 +63,7 @@ export default function BillingPage() {
         <header>
           <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
           <p className="text-muted mt-1 text-sm">
-            Your active subscriptions and what they renew at.
+            Your subscriptions — select one to upgrade, downgrade, or cancel.
           </p>
         </header>
 
@@ -64,13 +72,14 @@ export default function BillingPage() {
           <div className="mt-3">
             {subscriptions.length > 0 ? (
               <div className="border-border overflow-x-auto rounded-xl border">
-                <table className="w-full min-w-[34rem] text-left text-sm">
+                <table className="w-full min-w-160 text-left text-sm">
                   <thead>
                     <tr className="border-border text-muted border-b text-xs font-semibold tracking-wider uppercase">
                       <th className="px-4 py-3">Creator</th>
                       <th className="px-4 py-3">Tier</th>
                       <th className="px-4 py-3">Cost / month</th>
-                      <th className="px-4 py-3">Renews</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Renews / ends</th>
                     </tr>
                   </thead>
                   <tbody className="divide-border divide-y">
@@ -80,17 +89,24 @@ export default function BillingPage() {
                         displayName(creator) ??
                         (creator.handle ? `@${creator.handle}` : "Creator");
                       return (
-                        <tr key={membership.id}>
+                        <tr
+                          key={membership.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelected(membership)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelected(membership);
+                            }
+                          }}
+                          className="hover:bg-foreground/5 focus-visible:bg-foreground/5 cursor-pointer transition-colors focus-visible:outline-none"
+                        >
                           <td className="px-4 py-3">
-                            <Link
-                              href={
-                                creator.handle ? `/c/${creator.handle}` : "#"
-                              }
-                              className="group flex items-center gap-3"
-                            >
+                            <span className="flex items-center gap-3">
                               <UserAvatar user={creator} size={32} />
                               <span className="min-w-0">
-                                <b className="text-foreground group-hover:text-foreground block truncate font-semibold">
+                                <b className="text-foreground block truncate font-semibold">
                                   {name}
                                 </b>
                                 {creator.handle && (
@@ -99,13 +115,16 @@ export default function BillingPage() {
                                   </span>
                                 )}
                               </span>
-                            </Link>
+                            </span>
                           </td>
                           <td className="px-4 py-3">
                             <TierPill name={tier.name} rank={tier.rank} />
                           </td>
                           <td className="text-foreground px-4 py-3 whitespace-nowrap">
                             {formatPrice(tier.price_cents)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <SubscriptionStatusBadge membership={membership} />
                           </td>
                           <td className="text-foreground-soft px-4 py-3 whitespace-nowrap">
                             {renewalDate(membership.current_period_end)}
@@ -122,7 +141,7 @@ export default function BillingPage() {
                   <CardIcon className="text-muted h-5 w-5" />
                 </span>
                 <b className="text-foreground block text-sm font-semibold">
-                  No active subscriptions
+                  No subscriptions yet
                 </b>
                 <p className="text-foreground-soft mx-auto mt-1.5 max-w-sm text-sm">
                   When you subscribe to a creator&apos;s paid tier, it&apos;ll
@@ -133,6 +152,15 @@ export default function BillingPage() {
           </div>
         </section>
       </div>
+
+      <BillingSubscriptionModal
+        membership={selected}
+        onClose={() => setSelected(null)}
+        onChanged={() => {
+          setSelected(null);
+          refresh();
+        }}
+      />
     </HomeShell>
   );
 }

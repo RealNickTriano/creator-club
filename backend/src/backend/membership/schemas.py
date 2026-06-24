@@ -28,6 +28,12 @@ class NewMembership(BaseModel):
   tier_id: uuid.UUID
 
 
+class CancelMembership(BaseModel):
+  """Which creator's membership the current user wants to cancel."""
+
+  creator_id: uuid.UUID
+
+
 class CheckoutSession(BaseModel):
   """A redirect to Stripe Checkout, returned when a paid tier needs payment.
 
@@ -49,6 +55,9 @@ class PublicMembership(BaseModel):
   started_at: datetime
   current_period_end: datetime | None
   canceled_at: datetime | None
+  # Stripe-mirrored subscription status (active, trialing, past_due, …);
+  # None for free memberships that never had a subscription.
+  status: str | None
   tier: PublicTier
   creator: PublicUser
   active: bool

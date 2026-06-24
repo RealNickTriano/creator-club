@@ -69,10 +69,14 @@ def stub_stripe_billing(monkeypatch: pytest.MonkeyPatch) -> None:
   async def _stub_checkout(member: object, tier: object, creator: object) -> str:
     return "https://checkout.stripe.test/stub-session"
 
+  async def _no_cancel(subscription_id: str) -> None:
+    return None
+
   monkeypatch.setattr(billing, "sync_tier_pricing", _no_sync)
   monkeypatch.setattr(billing, "archive_price", _no_archive)
   monkeypatch.setattr(billing, "create_customer", _stub_customer)
   monkeypatch.setattr(billing, "create_subscription_checkout", _stub_checkout)
+  monkeypatch.setattr(billing, "cancel_subscription", _no_cancel)
 
 
 @pytest.fixture(scope="session")

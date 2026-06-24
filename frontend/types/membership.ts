@@ -13,6 +13,8 @@ export interface Membership {
   started_at: string;
   current_period_end: string | null;
   canceled_at: string | null;
+  /** Stripe-mirrored status (active, trialing, past_due, …); null for free tiers. */
+  status: string | null;
   tier: Tier;
   creator: PublicUser;
   active: boolean;

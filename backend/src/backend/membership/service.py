@@ -5,7 +5,7 @@ order) and any value transforms; the repository stays pure database access.
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -106,4 +106,18 @@ async def provision_subscription(
   membership.status = status
   membership.current_period_end = current_period_end
   membership.canceled_at = canceled_at
+  return await repository.update_membership(session, membership)
+
+
+async def mark_canceled(
+  session: AsyncSession, membership: Membership
+) -> Membership:
+  """Stamp the membership as canceled now.
+
+  Audit only: ``current_period_end`` still gates access, so the fan keeps what
+  they paid for until the period lapses (the cancellation is scheduled at
+  period end in Stripe). The webhook re-stamps the same field idempotently when
+  Stripe confirms.
+  """
+  membership.canceled_at = datetime.now(UTC)
   return await repository.update_membership(session, membership)
