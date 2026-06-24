@@ -5,8 +5,8 @@ import type { Membership } from "@/types/membership";
 
 /**
  * The "Your memberships" block: the creators the signed-in user supports, laid
- * out in a responsive grid with an "Explore →" shortcut (mockup A). Falls back
- * to {@link MembershipsEmpty} when they don't support anyone yet (mockup B).
+ * out in a responsive grid (mockup A). Falls back to {@link MembershipsEmpty}
+ * when they don't support anyone yet (mockup B).
  */
 export default function MembershipsSection({
   memberships,
@@ -17,10 +17,7 @@ export default function MembershipsSection({
 
   return (
     <section className="mt-8">
-      <SectionHeading
-        title="Your memberships"
-        action={hasMemberships ? { label: "Explore", href: "#" } : undefined}
-      />
+      <SectionHeading title="Your memberships" />
       <div className="mt-3">
         {hasMemberships ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

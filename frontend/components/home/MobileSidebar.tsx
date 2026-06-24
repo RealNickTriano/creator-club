@@ -52,7 +52,7 @@ export default function MobileSidebar({
 
       <SidebarNav onNavigate={onClose} />
 
-      <div className="border-border border-t p-3">
+      <div className="border-border space-y-1 border-t p-3">
         {user ? <UserMenu user={user} collapsed={false} /> : <SidebarLogin />}
       </div>
     </div>

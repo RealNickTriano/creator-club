@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BrandLoader from "@/components/brand/BrandLoader";
 import CreatorPageSection from "@/components/home/CreatorPageSection";
-import CreatorSearch from "@/components/home/CreatorSearch";
 import HomeGreeting from "@/components/home/HomeGreeting";
 import HomeShell from "@/components/home/HomeShell";
 import MembershipsSection from "@/components/home/MembershipsSection";
@@ -40,9 +39,6 @@ export default function HomePage() {
     <HomeShell user={user}>
       <div className="mx-auto max-w-3xl">
         <HomeGreeting name={firstName} />
-        <div className="mt-6">
-          <CreatorSearch />
-        </div>
 
         <CreatorPageSection user={user} />
 

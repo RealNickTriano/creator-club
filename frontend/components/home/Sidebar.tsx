@@ -39,8 +39,8 @@ export default function Sidebar({ user }: { user: User | null }) {
 
       <SidebarNav collapsed={collapsed} />
 
-      {/* Footer: signed-in user + menu (theme, logout), or the login CTA. */}
-      <div className="border-border border-t p-3">
+      {/* Footer: the signed-in user + menu (theme, logout), or the login CTA. */}
+      <div className="border-border space-y-1 border-t p-3">
         {user ? (
           <UserMenu user={user} collapsed={collapsed} />
         ) : (
