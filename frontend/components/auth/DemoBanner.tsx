@@ -28,7 +28,7 @@ export default function DemoBanner() {
   }
 
   return (
-    <div className="border-border bg-background text-foreground/80 fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100%-2rem)] -translate-x-1/2 flex-col items-center gap-2 rounded-2xl border px-4 py-2 text-center text-xs shadow-lg sm:flex-row sm:gap-3 sm:rounded-full">
+    <div className="border-border bg-background text-foreground/80 fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border px-4 py-2 text-center text-xs shadow-lg sm:rounded-full text-nowrap">
       <span>
         You&rsquo;re in <span className="font-semibold">demo mode</span> — a
         sandbox account.
