@@ -36,6 +36,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+from backend import billing
 from backend.db import Base
 from backend.main import app
 
@@ -44,6 +45,28 @@ from backend.main import app
 def client() -> TestClient:
   """A TestClient bound to the FastAPI app."""
   return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def stub_stripe_billing(monkeypatch: pytest.MonkeyPatch) -> None:
+  """Keep the suite hermetic — never call Stripe over the network.
+
+  Creating/updating a paid tier syncs to Stripe in real code (see
+  :mod:`backend.billing`); here we replace those two network helpers with
+  no-ops so unit tests neither need a Stripe key nor make HTTP calls. A test
+  that wants to assert real billing behavior can re-patch them. The simulated
+  ``charge_for_tier`` is left alone — it's just a sleep that tests already
+  zero out.
+  """
+
+  async def _no_sync(tier: object) -> bool:
+    return False
+
+  async def _no_archive(price_id: str) -> None:
+    return None
+
+  monkeypatch.setattr(billing, "sync_tier_pricing", _no_sync)
+  monkeypatch.setattr(billing, "archive_price", _no_archive)
 
 
 @pytest.fixture(scope="session")
