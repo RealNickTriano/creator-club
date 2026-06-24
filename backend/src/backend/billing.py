@@ -15,6 +15,8 @@ Two jobs live here:
   itself is provisioned later, from the resulting webhook (Phase 3).
 """
 
+import stripe
+
 from backend.config import settings
 from backend.stripe_client import get_stripe
 from backend.tier.models import Tier
@@ -150,3 +152,27 @@ async def create_subscription_checkout(
     }
   )
   return session.url
+
+
+def construct_event(payload: bytes, sig_header: str | None) -> stripe.Event:
+  """Verify a webhook payload's signature and return the parsed Event.
+
+  The signature *is* the authentication for the webhook endpoint, so this must
+  run on the raw request bytes. Raises ``ValueError`` (malformed payload) or
+  ``stripe.SignatureVerificationError`` (bad/forged signature) — the caller
+  turns either into a 400.
+  """
+  if not settings.stripe_webhook_secret:
+    raise RuntimeError(
+      "Stripe webhooks are not configured: set STRIPE_WEBHOOK_SECRET "
+      "(from `stripe listen` or the Dashboard)."
+    )
+  return stripe.Webhook.construct_event(
+    payload, sig_header, settings.stripe_webhook_secret
+  )
+
+
+async def get_subscription(subscription_id: str) -> stripe.Subscription:
+  """Retrieve a Subscription — its items carry ``current_period_end``."""
+  client = get_stripe()
+  return await client.v1.subscriptions.retrieve_async(subscription_id)

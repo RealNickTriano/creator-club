@@ -5,6 +5,7 @@ order) and any value transforms; the repository stays pure database access.
 """
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,3 +72,38 @@ async def set_membership(
   membership.canceled_at = None
   membership.current_period_end = None
   return await repository.update_membership(session, membership), False
+
+
+async def provision_subscription(
+  session: AsyncSession,
+  *,
+  member_id: uuid.UUID,
+  creator_id: uuid.UUID,
+  tier_id: uuid.UUID,
+  stripe_subscription_id: str,
+  status: str,
+  current_period_end: datetime | None,
+  canceled_at: datetime | None,
+) -> Membership:
+  """Upsert the membership backing a Stripe subscription (webhook-driven).
+
+  This is the authority for *paid* memberships: it mirrors Stripe's state onto
+  the row — the subscription id, its ``status``, and the real
+  ``current_period_end`` (the access boundary the entitlement check reads) and
+  ``canceled_at``. Keyed on (member, creator), so it upgrades an existing free
+  membership in place and is idempotent across the duplicate/retried events
+  Stripe may deliver.
+  """
+  membership = await repository.get_membership_by_member_and_creator(
+    session, member_id, creator_id
+  )
+  if membership is None:
+    membership = await repository.create_membership(
+      session, member_id, creator_id, tier_id
+    )
+  membership.tier_id = tier_id
+  membership.stripe_subscription_id = stripe_subscription_id
+  membership.status = status
+  membership.current_period_end = current_period_end
+  membership.canceled_at = canceled_at
+  return await repository.update_membership(session, membership)

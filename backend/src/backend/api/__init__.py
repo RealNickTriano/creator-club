@@ -12,6 +12,7 @@ from backend.membership.router import router as membership_router
 from backend.post.router import router as post_router
 from backend.tier.router import router as tier_router
 from backend.user.router import router as user_router
+from backend.webhooks.router import router as webhooks_router
 
 _routers = (
   health_router,
@@ -20,6 +21,7 @@ _routers = (
   tier_router,
   membership_router,
   post_router,
+  webhooks_router,
 )
 
 
