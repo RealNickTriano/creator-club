@@ -28,7 +28,7 @@ export default function DemoBanner() {
   }
 
   return (
-    <div className="border-border bg-background text-foreground/80 fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-2 text-center text-xs shadow-lg">
+    <div className="border-border bg-background text-foreground/80 fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100%-2rem)] -translate-x-1/2 flex-col items-center gap-2 rounded-2xl border px-4 py-2 text-center text-xs shadow-lg sm:flex-row sm:gap-3 sm:rounded-full">
       <span>
         You&rsquo;re in <span className="font-semibold">demo mode</span> — a
         sandbox account.
@@ -37,7 +37,7 @@ export default function DemoBanner() {
         type="button"
         onClick={exitDemo}
         disabled={exiting}
-        className="border-border text-foreground hover:bg-foreground/10 focus-visible:ring-foreground focus-visible:ring-offset-background cursor-pointer rounded-full border px-3 py-0.5 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+        className="border-border text-foreground hover:bg-foreground/10 focus-visible:ring-foreground focus-visible:ring-offset-background shrink-0 cursor-pointer rounded-full border px-3 py-0.5 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
       >
         {exiting ? "Exiting…" : "Exit demo"}
       </button>
