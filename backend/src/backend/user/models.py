@@ -31,6 +31,9 @@ class User(Base):
   bio: Mapped[str | None] = mapped_column(Text)
   google_avatar_url: Mapped[str | None] = mapped_column(Text)
   last_logged_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+  # Stripe Customer id (cus_…) for this user as a paying fan; set lazily on
+  # first checkout. See stripe-billing-plan.html.
+  stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True)
   created_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True), server_default=func.now()
   )

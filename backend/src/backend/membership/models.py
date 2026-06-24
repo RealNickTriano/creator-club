@@ -3,7 +3,14 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import (
+  CheckConstraint,
+  DateTime,
+  ForeignKey,
+  String,
+  UniqueConstraint,
+  func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid6 import uuid7
@@ -45,3 +52,11 @@ class Membership(Base):
     DateTime(timezone=True)
   )
   canceled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+  # Stripe Subscription id (sub_…) backing a paid membership; NULL for free
+  # tiers. ``status`` mirrors Stripe's subscription status (active, past_due,
+  # canceled, …) for UI/debugging — current_period_end stays the access
+  # boundary the entitlement check reads. See stripe-billing-plan.html.
+  stripe_subscription_id: Mapped[str | None] = mapped_column(
+    String(255), unique=True
+  )
+  status: Mapped[str | None] = mapped_column(String(40))

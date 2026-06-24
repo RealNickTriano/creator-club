@@ -30,5 +30,18 @@ class Settings(BaseSettings):
   # false to hide the demo entirely (the route then 404s).
   demo_enabled: bool = True
 
+  # Stripe (test mode only — see stripe-billing-plan.html). Optional so the app
+  # still boots before keys are configured; billing code fails loudly if used
+  # without them. The "secret" key may be a restricted key (rk_…), which Stripe
+  # recommends over a full secret key (sk_…). The publishable key (pk_…) is the
+  # only one safe to expose to the browser. The webhook secret (whsec_…) comes
+  # from `stripe listen` / the Dashboard and verifies event signatures.
+  stripe_secret_key: str | None = None
+  stripe_publishable_key: str | None = None
+  stripe_webhook_secret: str | None = None
+  # Pin the Stripe API version so object shapes (e.g. where
+  # current_period_end lives) don't shift under us on a Stripe upgrade.
+  stripe_api_version: str = "2026-05-27.dahlia"
+
 
 settings = Settings()

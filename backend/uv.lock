@@ -67,6 +67,7 @@ dependencies = [
     { name = "itsdangerous" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "stripe" },
     { name = "uuid6" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -87,6 +88,7 @@ requires-dist = [
     { name = "itsdangerous", specifier = ">=2.2.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.50" },
+    { name = "stripe", specifier = ">=15.2.1" },
     { name = "uuid6", specifier = ">=2025.0.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },
 ]
@@ -652,6 +654,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/25/44/ec35f1b6e83094b997da438a02c8c9b0ade2b1e84cfc48bd4656780760a6/starlette-1.2.1.tar.gz", hash = "sha256:9b9b5ebb992e67d6093741e63c2f59e4f6fff986f81163c087867bd7b924b3f6", size = 2701854, upload-time = "2026-05-31T01:07:51.847Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1c/54/196d0c1db10af76baa4f64894448505d60d3cdf70ef92cbb35f46a4e4c71/starlette-1.2.1-py3-none-any.whl", hash = "sha256:4de0082d08c8f6764a85a54cf1120d6939507a19905c7768acad2a9f875d2b89", size = 73350, upload-time = "2026-05-31T01:07:50.09Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "15.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bb/04/a41c498352317d0c3d52dfb265f3c3c3e50f1468fcacef5b6794dd57c967/stripe-15.2.1.tar.gz", hash = "sha256:5821a802abf70be900d7b1b6bb609697cc25c9aa521eb86430e68b994dac9f78", size = 1520402, upload-time = "2026-06-12T22:44:12.519Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b4/be/b16d1222b8b47b5c1bf188523df679f28a9ff9662ad8276a02a56101463c/stripe-15.2.1-py3-none-any.whl", hash = "sha256:49571ffbfd7944daae4000e33d3b42705012ee7aae003b7b67868c1e59d442f5", size = 2168627, upload-time = "2026-06-12T22:44:10.458Z" },
 ]
 
 [[package]]

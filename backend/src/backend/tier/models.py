@@ -42,6 +42,10 @@ class Tier(Base):
   name: Mapped[str] = mapped_column(String(80))
   rank: Mapped[int] = mapped_column(Integer)
   price_cents: Mapped[int] = mapped_column(Integer)
+  # Stripe Product/Price ids backing a paid tier (set when priced via Stripe;
+  # NULL for free tiers and not-yet-synced tiers). See stripe-billing-plan.html.
+  stripe_product_id: Mapped[str | None] = mapped_column(String(255))
+  stripe_price_id: Mapped[str | None] = mapped_column(String(255))
   description: Mapped[str | None] = mapped_column(Text)
   created_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True), server_default=func.now()
