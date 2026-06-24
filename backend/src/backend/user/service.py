@@ -66,6 +66,18 @@ async def update_user(
   return await repository.update_user(session, user)
 
 
+async def attach_stripe_customer(
+  session: AsyncSession, user: User, customer_id: str
+) -> User:
+  """Store the user's Stripe Customer id and persist it.
+
+  Set once, the first time a fan reaches checkout, then reused for every later
+  subscription so we never create duplicate Customers.
+  """
+  user.stripe_customer_id = customer_id
+  return await repository.update_user(session, user)
+
+
 async def stamp_login(session: AsyncSession, user: User) -> User:
   """Record that the user just signed in (stamps the current UTC time)."""
   await repository.update_last_login(session, user, datetime.now(UTC))

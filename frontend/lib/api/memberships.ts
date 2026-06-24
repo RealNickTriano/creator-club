@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import type { Membership } from "@/types/membership";
+import type { CheckoutSession, Membership } from "@/types/membership";
 
 /**
  * Fetches the signed-in user's memberships, each with its held tier and the
@@ -11,18 +11,31 @@ export function listMyMemberships(): Promise<Membership[]> {
 }
 
 /**
- * Sets the signed-in user's membership with a creator to a tier — one
- * upsert-style call covers join, resume, upgrade and downgrade. Paid tiers
- * run the backend's simulated billing (~2s), so callers should show a
- * pending state.
+ * Sets the signed-in user's membership with a creator to a tier. The response
+ * depends on the tier:
+ *
+ * - **Free tier** → the upsert runs server-side (join / resume / downgrade) and
+ *   the resulting `Membership` is returned.
+ * - **Paid tier** → no membership is created yet; a {@link CheckoutSession} is
+ *   returned and the caller should redirect to its `checkout_url` so the fan
+ *   can pay. The membership is provisioned once payment completes.
+ *
+ * Use {@link isCheckoutSession} to tell the two apart.
  */
 export function setMembership(
   creatorId: string,
   tierId: string,
-): Promise<Membership> {
-  return apiFetch<Membership>("/memberships", {
+): Promise<Membership | CheckoutSession> {
+  return apiFetch<Membership | CheckoutSession>("/memberships", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ creator_id: creatorId, tier_id: tierId }),
   });
+}
+
+/** Narrow a {@link setMembership} result to the paid-tier checkout response. */
+export function isCheckoutSession(
+  result: Membership | CheckoutSession,
+): result is CheckoutSession {
+  return "checkout_url" in result;
 }

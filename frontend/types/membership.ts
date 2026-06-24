@@ -17,3 +17,13 @@ export interface Membership {
   creator: PublicUser;
   active: boolean;
 }
+
+/**
+ * Returned by `POST /memberships` for a **paid** tier instead of a `Membership`:
+ * a Stripe Checkout URL to redirect the browser to. The membership itself is
+ * created once payment completes (via the backend's Stripe webhook), so there's
+ * no row to return yet.
+ */
+export interface CheckoutSession {
+  checkout_url: string;
+}

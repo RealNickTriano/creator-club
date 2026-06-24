@@ -14,11 +14,14 @@ from fastapi import HTTPException, Response
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend import billing
 from backend.auth.router import get_current_user
 from backend.main import app
 from backend.membership import router as membership_router
-from backend.membership.schemas import NewMembership, PublicMembership
+from backend.membership.schemas import (
+  CheckoutSession,
+  NewMembership,
+  PublicMembership,
+)
 from backend.tier import repository as tier_repository
 from backend.tier.models import Tier
 from backend.tier.schemas import NewTier
@@ -54,7 +57,7 @@ async def _create_tier(
 
 async def _post(
   db_session: AsyncSession, user: User, creator_id: uuid.UUID, tier_id: uuid.UUID
-) -> tuple[PublicMembership, Response]:
+) -> tuple[PublicMembership | CheckoutSession, Response]:
   """Call the route function directly, returning (payload, response)."""
   response = Response()
   payload = await membership_router.set_membership(
@@ -170,20 +173,24 @@ async def test_subscribing_to_yourself_returns_400(
   assert exc_info.value.status_code == 400
 
 
-async def test_paid_tier_joins_via_simulated_billing(
-  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+async def test_paid_tier_returns_checkout_url_without_joining(
+  db_session: AsyncSession,
 ) -> None:
-  """A paid tier runs the billing stub, then joins like any other tier."""
-  monkeypatch.setattr(billing, "SIMULATED_BILLING_SECONDS", 0)
+  """A paid tier returns a Stripe Checkout URL and creates no membership yet.
+
+  The membership is provisioned later by the webhook; posting a paid tier here
+  only hands back the redirect (billing is stubbed in conftest).
+  """
   member = await _create_user(db_session)
   creator = await _create_user(db_session)
   paid = await _create_tier(db_session, creator, price_cents=500)
 
-  payload, response = await _post(db_session, member, creator.id, paid.id)
+  payload, _ = await _post(db_session, member, creator.id, paid.id)
 
-  assert response.status_code == 201
-  assert payload.tier.id == paid.id
-  assert payload.active is True
+  assert isinstance(payload, CheckoutSession)
+  assert payload.checkout_url
+  # Nothing was joined — that's the webhook's job.
+  assert await membership_router.list_my_memberships(member, db_session) == []
 
 
 async def test_join_returns_201_with_tier_and_status(

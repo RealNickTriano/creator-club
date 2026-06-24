@@ -11,7 +11,11 @@ from backend.db import get_db
 from backend.entitlements import membership_is_active_now
 from backend.membership import service as membership_service
 from backend.membership.models import Membership
-from backend.membership.schemas import NewMembership, PublicMembership
+from backend.membership.schemas import (
+  CheckoutSession,
+  NewMembership,
+  PublicMembership,
+)
 from backend.tier import service as tier_service
 from backend.tier.models import Tier
 from backend.tier.schemas import PublicTier
@@ -49,18 +53,20 @@ async def list_my_memberships(
   return [_to_public(membership, tier, creator) for membership, tier, creator in rows]
 
 
-@router.post("", response_model=PublicMembership)
+@router.post("", response_model=PublicMembership | CheckoutSession)
 async def set_membership(
   new_membership: NewMembership,
   user: Annotated[User, Depends(get_current_user)],
   db: Annotated[AsyncSession, Depends(get_db)],
   response: Response,
-) -> PublicMembership:
-  """Set the current user's membership with a creator to a tier (upsert).
+) -> PublicMembership | CheckoutSession:
+  """Join a creator at a tier.
 
-  One call covers join / resume / upgrade / downgrade / no-op — the service
-  decides from the existing row. 201 when a membership was newly created,
-  200 otherwise.
+  **Free tiers** upsert directly — one call covers join / resume / downgrade /
+  no-op, the service deciding from the existing row (201 when newly created,
+  200 otherwise). **Paid tiers** can't grant access until money changes hands,
+  so instead of upserting we return a Stripe Checkout URL; the membership is
+  provisioned later from the webhook (see stripe-billing-plan.html).
   """
   creator = await user_service.get_user_by_id(db, new_membership.creator_id)
   if creator is None:
@@ -83,10 +89,16 @@ async def set_membership(
       status_code=status.HTTP_400_BAD_REQUEST,
       detail="You can't subscribe to yourself.",
     )
+
   if tier.price_cents > 0:
-    # Billing is deferred — the stub logs the charge and waits so the flow
-    # feels like a real payment round-trip.
-    await billing.charge_for_tier(user.id, tier)
+    # Paid: hand off to Stripe Checkout. Ensure the fan has a Customer (created
+    # once, then reused), then return the hosted URL for the client to redirect
+    # to. The membership is created by the webhook once payment completes.
+    if user.stripe_customer_id is None:
+      customer_id = await billing.create_customer(user)
+      user = await user_service.attach_stripe_customer(db, user, customer_id)
+    checkout_url = await billing.create_subscription_checkout(user, tier, creator)
+    return CheckoutSession(checkout_url=checkout_url)
 
   membership, created = await membership_service.set_membership(
     db, user.id, creator.id, tier.id

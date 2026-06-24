@@ -1,28 +1,33 @@
 """Stripe billing integration (test mode only — see stripe-billing-plan.html).
 
-Phase 1 lives here: keeping paid tiers in sync with Stripe **Products** and
-**Prices** so a tier can be sold via Checkout later. A tier maps to one Product
-(its name/description) carrying one active recurring Price (its ``price_cents``).
+Two jobs live here:
 
-Prices are **immutable** in Stripe: changing a tier's price never edits the old
-Price, it creates a new one and archives the old (existing subscriptions keep
-the price they signed up on — exactly the behavior we want).
+* **Tier pricing** (Phase 1) — keep paid tiers in sync with Stripe **Products**
+  and **Prices** so a tier can be sold. A tier maps to one Product (its
+  name/description) carrying one active recurring Price (its ``price_cents``).
+  Prices are **immutable** in Stripe: changing a tier's price never edits the
+  old Price, it creates a new one and archives the old (existing subscriptions
+  keep the price they signed up on — exactly the behavior we want).
 
-``charge_for_tier`` is the leftover simulated charge from before billing was
-real; it still backs the paid-join flow until Phase 2 swaps that to Checkout.
+* **Checkout** (Phase 2) — a fan subscribing to a paid tier is sent to a
+  Stripe-hosted Checkout page (:func:`create_subscription_checkout`), each fan
+  backed by one Stripe **Customer** (:func:`create_customer`). The membership
+  itself is provisioned later, from the resulting webhook (Phase 3).
 """
 
-import asyncio
-import logging
-import uuid
-
+from backend.config import settings
 from backend.stripe_client import get_stripe
 from backend.tier.models import Tier
+from backend.user.models import User
 
-logger = logging.getLogger(__name__)
 
-# How long the fake payment round-trip takes. Tests patch this to 0.
-SIMULATED_BILLING_SECONDS = 2.0
+def _checkout_metadata(member: User, tier: Tier, creator: User) -> dict:
+  """Ids the webhook needs to map a completed Checkout back to our rows."""
+  return {
+    "member_id": str(member.id),
+    "creator_id": str(creator.id),
+    "tier_id": str(tier.id),
+  }
 
 
 def _product_params(tier: Tier) -> dict:
@@ -90,16 +95,58 @@ async def archive_price(price_id: str) -> None:
   await client.v1.prices.update_async(price_id, {"active": False})
 
 
-async def charge_for_tier(member_id: uuid.UUID, tier: Tier) -> None:
-  """Pretend to charge ``member_id`` for ``tier``: log it and wait.
+async def create_customer(user: User) -> str:
+  """Create a Stripe Customer for ``user`` and return its id (``cus_…``).
 
-  Deferred-billing leftover — replaced by Stripe Checkout in Phase 2.
+  One Customer per fan; the caller stores the id on the user (see
+  :func:`backend.user.service.attach_stripe_customer`) so we reuse it on every
+  later checkout instead of creating duplicates.
   """
-  logger.info(
-    "Simulated billing: charging user %s $%.2f for tier %r (%s)",
-    member_id,
-    tier.price_cents / 100,
-    tier.name,
-    tier.id,
+  client = get_stripe()
+  params: dict = {
+    "email": user.google_email,
+    "metadata": {"user_id": str(user.id)},
+  }
+  name = user.display_name or user.personal_name or user.google_name
+  if name:
+    params["name"] = name
+  customer = await client.v1.customers.create_async(params)
+  return customer.id
+
+
+async def create_subscription_checkout(
+  member: User, tier: Tier, creator: User
+) -> str:
+  """Create a subscription Checkout Session and return its hosted URL.
+
+  The fan (``member``) must already have a Stripe Customer and the ``tier`` a
+  synced Price. We deliberately omit ``payment_method_types`` so Stripe shows
+  the payment methods enabled in the Dashboard. Linking ids ride along as
+  metadata on both the session and the resulting Subscription so the webhook
+  (Phase 3) can provision the membership; the membership is **not** created
+  here.
+  """
+  if not tier.stripe_price_id:
+    raise RuntimeError(
+      f"Tier {tier.id} has no Stripe price; run the tier price sync first."
+    )
+
+  client = get_stripe()
+  metadata = _checkout_metadata(member, tier, creator)
+  base = settings.frontend_url.rstrip("/")
+  creator_page = f"{base}/c/{creator.handle}"
+
+  session = await client.v1.checkout.sessions.create_async(
+    {
+      "mode": "subscription",
+      "customer": member.stripe_customer_id,
+      "line_items": [{"price": tier.stripe_price_id, "quantity": 1}],
+      "success_url": f"{creator_page}?sub=success&session_id={{CHECKOUT_SESSION_ID}}",
+      "cancel_url": f"{creator_page}?sub=cancel",
+      "metadata": metadata,
+      # Copy the ids onto the Subscription too, so later events
+      # (invoice.paid, subscription.updated) can also be mapped to our rows.
+      "subscription_data": {"metadata": metadata},
+    }
   )
-  await asyncio.sleep(SIMULATED_BILLING_SECONDS)
+  return session.url

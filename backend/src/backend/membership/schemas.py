@@ -28,6 +28,16 @@ class NewMembership(BaseModel):
   tier_id: uuid.UUID
 
 
+class CheckoutSession(BaseModel):
+  """A redirect to Stripe Checkout, returned when a paid tier needs payment.
+
+  The membership isn't created yet — the webhook provisions it once payment
+  completes — so the client redirects the browser to ``checkout_url``.
+  """
+
+  checkout_url: str
+
+
 class PublicMembership(BaseModel):
   """A membership as returned to the member: row fields + tier + creator + status."""
 
