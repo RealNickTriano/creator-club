@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend import billing
 from backend.membership import service as membership_service
 from backend.membership.models import Membership
+from backend.webhooks import repository as webhook_repository
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,26 @@ async def handle_event(session: AsyncSession, event: object) -> None:
 
   Unrecognised event types are ignored — we subscribe narrowly, but Stripe may
   still deliver more than we handle.
+
+  Idempotency and the transaction boundary live here: we *claim* the event id
+  before applying it and commit the claim together with the membership write, so
+  an event is processed at most once and a crash mid-handling reprocesses rather
+  than loses the event (see :mod:`backend.webhooks.repository`). The handler owns
+  the single commit; the writes it calls do not commit on their own.
   """
   event_type = event["type"]
+  if event_type != "checkout.session.completed" and (
+    event_type not in _SUBSCRIPTION_EVENTS
+  ):
+    logger.debug("Stripe webhook: ignoring event type %s", event_type)
+    return
+
+  if not await webhook_repository.claim_event(session, event["id"]):
+    logger.info(
+      "Stripe webhook: event %s already processed; skipping.", event["id"]
+    )
+    return
+
   obj = event["data"]["object"]
   # The event's own creation time orders events for a subscription: Stripe gives
   # no delivery-order guarantee, so we pass it down as a monotonic marker.
@@ -59,10 +78,11 @@ async def handle_event(session: AsyncSession, event: object) -> None:
     if subscription_id:
       subscription = await billing.get_subscription(subscription_id)
       await _provision(session, subscription, event_at)
-  elif event_type in _SUBSCRIPTION_EVENTS:
-    await _provision(session, obj, event_at)
   else:
-    logger.debug("Stripe webhook: ignoring event type %s", event_type)
+    await _provision(session, obj, event_at)
+
+  # Commit the claim and the membership write together (one transaction).
+  await session.commit()
 
 
 async def _provision(

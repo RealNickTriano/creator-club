@@ -98,6 +98,10 @@ async def upsert_provisioned_membership(
   ``last_event_at`` only ever advances (``COALESCE`` keeps the stored marker
   when an event carries no ``created``). Returns the row, or ``None`` only if a
   concurrent delete removed it (not expected in this app).
+
+  Does **not** commit: the webhook handler owns the transaction so this write
+  and the event-idempotency claim commit together (see
+  :func:`backend.webhooks.service.handle_event`).
   """
   stmt = pg_insert(Membership).values(
     member_id=member_id,
@@ -149,10 +153,10 @@ async def upsert_provisioned_membership(
   )
 
   await session.execute(stmt)
-  await session.commit()
+  await session.flush()
   # Re-read the authoritative row (populate_existing refreshes any cached
-  # instance), so callers get the committed state whether the update fired or a
-  # guard skipped it.
+  # instance) within the same uncommitted transaction, so callers get the
+  # effective state whether the update fired or a guard skipped it.
   return await session.scalar(
     select(Membership)
     .where(

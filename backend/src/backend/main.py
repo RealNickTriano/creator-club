@@ -13,6 +13,7 @@ from backend.membership import models as membership_models  # noqa: F401  (regis
 from backend.post import models as post_models  # noqa: F401  (register models on Base.metadata)
 from backend.tier import models as tier_models  # noqa: F401  (register models on Base.metadata)
 from backend.user import models  # noqa: F401  (register models on Base.metadata)
+from backend.webhooks import models as webhook_models  # noqa: F401  (register models on Base.metadata)
 
 
 @asynccontextmanager

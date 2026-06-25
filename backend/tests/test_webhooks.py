@@ -91,9 +91,19 @@ def _subscription(
 
 
 def _event(
-  event_type: str, obj: StripeObject, created: int | None = None
+  event_type: str,
+  obj: StripeObject,
+  created: int | None = None,
+  event_id: str | None = None,
 ) -> StripeObject:
-  payload: dict = {"id": "evt_test", "type": event_type, "data": {"object": obj}}
+  # Unique id per event by default — the handler dedupes on event id, so reusing
+  # one id across distinct events would (correctly) skip all but the first. Pass
+  # an explicit event_id to model a genuine redelivery of the *same* event.
+  payload: dict = {
+    "id": event_id or f"evt_{uuid.uuid4().hex}",
+    "type": event_type,
+    "data": {"object": obj},
+  }
   if created is not None:
     payload["created"] = created
   return StripeObject.construct_from(payload, "sk_test")
@@ -454,6 +464,48 @@ async def test_same_second_terminal_event_wins(
   assert membership is not None
   assert membership.status == "canceled"
   assert membership_is_active_now(membership.current_period_end) is False
+
+
+async def test_duplicate_event_id_is_processed_once(
+  db_session: AsyncSession,
+) -> None:
+  """A redelivered event (same id) is skipped, even if it looks newer.
+
+  Isolates idempotency from the ordering guard: the redelivery carries a *later*
+  `created` and a different period, so the monotonic guard would happily apply
+  it — only the event-id dedup stops it, leaving the first write intact.
+  """
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_paid_tier(db_session, creator)
+
+  base = int(time.time())
+  far_end = base + 2 * ONE_MONTH
+  near_end = base + ONE_MONTH
+
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, tier, period_end=far_end),
+      created=base + 10,
+      event_id="evt_dup",
+    ),
+  )
+  # Same event id, but a newer `created` and a nearer period — must be deduped.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, tier, period_end=near_end),
+      created=base + 9999,
+      event_id="evt_dup",
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  assert membership.current_period_end == _to_dt(far_end)
 
 
 def test_webhook_rejects_bad_signature(
