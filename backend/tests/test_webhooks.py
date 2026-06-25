@@ -226,6 +226,95 @@ async def test_subscription_without_metadata_is_skipped(
   assert await _membership(db_session, member, creator) is None
 
 
+async def _create_paid_tier_rank(db_session: AsyncSession, owner: User, rank: int):
+  return await tier_repository.create_tier(
+    db_session,
+    owner.id,
+    NewTier(name=f"tier-{uuid.uuid4().hex[:8]}", rank=rank, price_cents=500),
+  )
+
+
+async def test_superseded_subscription_event_is_ignored(
+  db_session: AsyncSession,
+) -> None:
+  """An event from an old sub can't clobber a row active on a different sub.
+
+  This is the guard against duplicate subscriptions left by the historical
+  tier-change bug: while one subscription is live, a stray event from another
+  must not rewrite the membership.
+  """
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  current = await _create_paid_tier_rank(db_session, creator, rank=1)
+  other = await _create_paid_tier_rank(db_session, creator, rank=2)
+
+  # Row goes active on the current subscription.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, current, sub_id="sub_current"),
+    ),
+  )
+
+  # A late event from a *different* subscription (e.g. a leftover duplicate)
+  # pointing at another tier — must be ignored.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, other, sub_id="sub_old"),
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  assert membership.stripe_subscription_id == "sub_current"
+  assert membership.tier_id == current.id
+
+
+async def test_new_subscription_takes_over_lapsed_membership(
+  db_session: AsyncSession,
+) -> None:
+  """A genuinely new subscription may claim a row whose old sub has lapsed."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_paid_tier(db_session, creator)
+
+  # Old subscription lapsed: ended in the past, membership inactive.
+  now = int(time.time())
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.deleted",
+      _subscription(
+        member,
+        creator,
+        tier,
+        sub_id="sub_old",
+        status="canceled",
+        canceled_at=now - 5,
+        ended_at=now - 5,
+      ),
+    ),
+  )
+  assert (await _membership(db_session, member, creator)) is not None
+
+  # The fan re-subscribes — a new subscription provisions onto the same row.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, tier, sub_id="sub_new"),
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  assert membership.stripe_subscription_id == "sub_new"
+  assert membership_is_active_now(membership.current_period_end) is True
+
+
 def test_webhook_rejects_bad_signature(
   client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

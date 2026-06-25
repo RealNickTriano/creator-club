@@ -8,6 +8,7 @@ answer call the route function directly against the isolated Postgres
 
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException, Response
@@ -19,6 +20,7 @@ from backend.auth.router import get_current_user
 from backend.main import app
 from backend.membership import repository as membership_repository
 from backend.membership import router as membership_router
+from backend.membership.models import Membership
 from backend.membership.schemas import (
   CancelMembership,
   CheckoutSession,
@@ -277,3 +279,132 @@ async def test_repeat_post_returns_200(db_session: AsyncSession) -> None:
 
   assert response.status_code == 200
   assert payload.id == first.id
+
+
+async def _live_paid_membership(
+  db_session: AsyncSession,
+  member: User,
+  creator: User,
+  tier: Tier,
+  *,
+  sub_id: str = "sub_live",
+  period_end: datetime | None = None,
+) -> Membership:
+  """A persisted paid membership backed by a live Stripe subscription."""
+  membership = await membership_repository.create_membership(
+    db_session, member.id, creator.id, tier.id
+  )
+  membership.stripe_subscription_id = sub_id
+  membership.status = "active"
+  membership.current_period_end = period_end or (
+    datetime.now(UTC) + timedelta(days=30)
+  )
+  return await membership_repository.update_membership(db_session, membership)
+
+
+async def test_paid_to_paid_modifies_subscription_in_place(
+  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """Changing between paid tiers reuses the subscription — no new Checkout."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  bronze = await _create_tier(db_session, creator, rank=1, price_cents=500)
+  gold = await _create_tier(db_session, creator, rank=2, price_cents=1500)
+  await _live_paid_membership(db_session, member, creator, bronze)
+
+  calls: dict = {}
+
+  async def _record(sub_id: str, m: User, t: Tier, c: User) -> None:
+    calls["sub_id"] = sub_id
+    calls["tier_id"] = t.id
+
+  monkeypatch.setattr(billing, "change_subscription_tier", _record)
+
+  payload, response = await _post(db_session, member, creator.id, gold.id)
+
+  # Modified in place, not redirected to Checkout.
+  assert isinstance(payload, PublicMembership)
+  assert calls == {"sub_id": "sub_live", "tier_id": gold.id}
+  assert payload.tier.id == gold.id
+  # One membership, same subscription id retained.
+  memberships = await membership_router.list_my_memberships(member, db_session)
+  assert len(memberships) == 1
+  row = await membership_repository.get_membership_by_member_and_creator(
+    db_session, member.id, creator.id
+  )
+  assert row.stripe_subscription_id == "sub_live"
+
+
+async def test_paid_to_same_paid_tier_is_noop(
+  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """Re-selecting the held paid tier touches Stripe not at all."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  gold = await _create_tier(db_session, creator, rank=2, price_cents=1500)
+  await _live_paid_membership(db_session, member, creator, gold)
+
+  called = False
+
+  async def _record(sub_id: str, m: User, t: Tier, c: User) -> None:
+    nonlocal called
+    called = True
+
+  monkeypatch.setattr(billing, "change_subscription_tier", _record)
+
+  payload, _ = await _post(db_session, member, creator.id, gold.id)
+
+  assert isinstance(payload, PublicMembership)
+  assert payload.tier.id == gold.id
+  assert called is False
+
+
+async def test_paid_to_free_with_live_sub_returns_409(
+  db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  """Downgrading a live paid subscription to free is blocked — cancel first."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  paid = await _create_tier(db_session, creator, rank=1, price_cents=500)
+  free = await _create_tier(db_session, creator, rank=0, price_cents=0)
+  await _live_paid_membership(db_session, member, creator, paid)
+
+  async def _fail(*args: object, **kwargs: object) -> None:
+    raise AssertionError("no Stripe call expected on a blocked downgrade")
+
+  monkeypatch.setattr(billing, "change_subscription_tier", _fail)
+  monkeypatch.setattr(billing, "cancel_subscription", _fail)
+
+  with pytest.raises(HTTPException) as exc_info:
+    await _post(db_session, member, creator.id, free.id)
+  assert exc_info.value.status_code == 409
+
+
+async def test_lapsed_paid_to_free_upserts_cleanly(
+  db_session: AsyncSession,
+) -> None:
+  """Once the paid period lapses, joining free is an ordinary clean upsert."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  paid = await _create_tier(db_session, creator, rank=1, price_cents=500)
+  free = await _create_tier(db_session, creator, rank=0, price_cents=0)
+  # Lapsed: period ended in the past, so no live subscription.
+  await _live_paid_membership(
+    db_session,
+    member,
+    creator,
+    paid,
+    period_end=datetime.now(UTC) - timedelta(days=1),
+  )
+
+  payload, response = await _post(db_session, member, creator.id, free.id)
+
+  assert response.status_code == 200
+  assert payload.tier.id == free.id
+  assert payload.active is True
+  # The dead subscription link is cleared — nothing left to resurrect.
+  row = await membership_repository.get_membership_by_member_and_creator(
+    db_session, member.id, creator.id
+  )
+  assert row.stripe_subscription_id is None
+  assert row.status is None

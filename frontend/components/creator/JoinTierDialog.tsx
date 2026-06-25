@@ -17,14 +17,19 @@ const PENDING_LABELS: Record<JoinVerb, string> = {
  * The confirmation step before a membership change: shows the tier the viewer
  * is about to hold (as a read-only card) with cancel / confirm. Open whenever
  * `tier` is set. While `pending` the buttons lock and the dialog can't be
- * dismissed. A **paid** tier confirms into a redirect to Stripe Checkout, so
- * its labels say so; a free tier updates the membership in place.
+ * dismissed.
+ *
+ * `willRedirect` distinguishes the two paid paths: a **first-time** paid join
+ * hands off to Stripe Checkout (so the copy says so), whereas an upgrade or
+ * downgrade between paid tiers modifies the existing subscription in place
+ * (prorated, no redirect). A free tier always updates in place.
  */
 export default function JoinTierDialog({
   tier,
   verb,
   pending,
   error,
+  willRedirect,
   onConfirm,
   onClose,
 }: {
@@ -32,6 +37,7 @@ export default function JoinTierDialog({
   verb: JoinVerb;
   pending: boolean;
   error: boolean;
+  willRedirect: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -42,9 +48,19 @@ export default function JoinTierDialog({
   }
 
   function confirmLabel(): string {
-    if (pending) return isPaid ? "Redirecting…" : PENDING_LABELS[verb];
-    if (isPaid) return "Continue to payment";
+    if (pending) return willRedirect ? "Redirecting…" : PENDING_LABELS[verb];
+    if (willRedirect) return "Continue to payment";
     return verb === "Join" ? "Join Tier" : verb;
+  }
+
+  function bodyText(): string {
+    if (willRedirect) {
+      return "You'll be taken to Stripe to complete payment. You can change tiers any time.";
+    }
+    if (isPaid) {
+      return "We'll update your subscription right away and prorate the difference. You can change tiers any time.";
+    }
+    return "Your membership updates immediately — you can change tiers any time.";
   }
 
   return (
@@ -65,11 +81,7 @@ export default function JoinTierDialog({
 
           <MembershipTierCard tier={tier} />
 
-          <p className="text-muted text-sm">
-            {isPaid
-              ? "You'll be taken to Stripe to complete payment. You can change tiers any time."
-              : "Your membership updates immediately — you can change tiers any time."}
-          </p>
+          <p className="text-muted text-sm">{bodyText()}</p>
 
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">

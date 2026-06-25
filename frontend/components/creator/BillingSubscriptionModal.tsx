@@ -119,6 +119,11 @@ function SubscriptionManager({
           tiers={tiers}
           heldTierId={membership.tier.id}
           creatorId={membership.creator_id}
+          // This row may be an ended subscription, so derive "live paid" from
+          // its status rather than letting the list infer it from the tier.
+          holdsPaidSubscription={
+            membership.active && membership.tier.price_cents > 0
+          }
           onMembershipChange={onChanged}
         />
       )}

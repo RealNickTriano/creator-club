@@ -6,6 +6,7 @@ import CreatorTiersEmpty from "@/components/creator/CreatorTiersEmpty";
 import JoinTierDialog, {
   type JoinVerb,
 } from "@/components/creator/JoinTierDialog";
+import MembershipChangeModal from "@/components/creator/MembershipChangeModal";
 import MembershipTierCard from "@/components/creator/MembershipTierCard";
 import TierForm from "@/components/creator/TierForm";
 import Modal from "@/components/ui/Modal";
@@ -31,12 +32,18 @@ export default function CreatorMembershipsList({
   canManage = false,
   heldTierId = null,
   creatorId = null,
+  holdsPaidSubscription,
   onMembershipChange,
 }: {
   tiers: Tier[];
   canManage?: boolean;
   heldTierId?: string | null;
   creatorId?: string | null;
+  /** Whether the viewer holds an active paid subscription with this creator —
+   * decides in-place change vs Checkout redirect, and whether free is reachable.
+   * Defaults to "the held tier is paid"; pass explicitly when `heldTierId` may
+   * point at an inactive membership (e.g. the Billing modal). */
+  holdsPaidSubscription?: boolean;
   onMembershipChange?: () => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -44,12 +51,21 @@ export default function CreatorMembershipsList({
   const join = useJoinTier(creatorId, onMembershipChange);
   const router = useRouter();
 
-  // Rank of the viewer's held tier, deciding Upgrade vs Downgrade labels.
-  const heldRank = tiers.find((tier) => tier.id === heldTierId)?.rank;
+  // The viewer's held tier — its rank decides Upgrade vs Downgrade labels.
+  const heldTier = tiers.find((tier) => tier.id === heldTierId);
+  const heldRank = heldTier?.rank;
+  const holdsPaidSub =
+    holdsPaidSubscription ?? (heldTier?.price_cents ?? 0) > 0;
 
   function verbFor(tier: Tier): JoinVerb {
     if (heldRank === undefined) return "Join";
     return tier.rank > heldRank ? "Upgrade" : "Downgrade";
+  }
+
+  // A paid target redirects to Checkout only for a first-time subscription; an
+  // upgrade/downgrade from a live paid subscription is modified in place.
+  function willRedirect(tier: Tier): boolean {
+    return tier.price_cents > 0 && !holdsPaidSub;
   }
 
   // New tiers slot in above the current top rung.
@@ -78,29 +94,43 @@ export default function CreatorMembershipsList({
       </div>
     ) : (
       <div className="space-y-3">
-        {tiers.map((tier) => (
-          <MembershipTierCard
-            key={tier.id}
-            tier={tier}
-            held={tier.id === heldTierId}
-            action={
-              creatorId && tier.id !== heldTierId
-                ? {
-                    label:
-                      verbFor(tier) === "Join" ? "Join Tier" : verbFor(tier),
-                    onClick: () => join.request(tier),
-                  }
-                : undefined
-            }
-          />
-        ))}
+        {tiers.map((tier) => {
+          const isHeld = tier.id === heldTierId;
+          // On a paid tier, moving to free isn't a tier change — the fan must
+          // cancel first (the API returns 409). Offer no button for it; the
+          // free tier simply has no action while a paid tier is held.
+          const cancelToGoFree =
+            holdsPaidSub && !isHeld && tier.price_cents === 0;
+          return (
+            <MembershipTierCard
+              key={tier.id}
+              tier={tier}
+              held={isHeld}
+              action={
+                creatorId && !isHeld && !cancelToGoFree
+                  ? {
+                      label:
+                        verbFor(tier) === "Join" ? "Join Tier" : verbFor(tier),
+                      onClick: () => join.request(tier),
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
         <JoinTierDialog
           tier={join.confirming}
           verb={join.confirming ? verbFor(join.confirming) : "Join"}
           pending={join.pending}
           error={join.error}
+          willRedirect={join.confirming ? willRedirect(join.confirming) : false}
           onConfirm={join.confirm}
           onClose={join.close}
+        />
+        <MembershipChangeModal
+          status={join.status}
+          tier={join.activeTier}
+          onDismiss={join.dismiss}
         />
       </div>
     );

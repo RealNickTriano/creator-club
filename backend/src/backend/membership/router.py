@@ -92,15 +92,51 @@ async def set_membership(
       detail="You can't subscribe to yourself.",
     )
 
+  existing = await membership_service.get_membership_by_member_and_creator(
+    db, user.id, creator.id
+  )
+  # A live paid subscription with this creator (at most one — the row is unique
+  # per member·creator) is modified in place rather than re-bought; a lapsed one
+  # falls through to a fresh join.
+  has_live_subscription = (
+    existing is not None
+    and existing.stripe_subscription_id is not None
+    and membership_is_active_now(existing.current_period_end)
+  )
+
   if tier.price_cents > 0:
-    # Paid: hand off to Stripe Checkout. Ensure the fan has a Customer (created
-    # once, then reused), then return the hosted URL for the client to redirect
-    # to. The membership is created by the webhook once payment completes.
+    if has_live_subscription:
+      # Tier change on an existing subscription: swap the price in place so the
+      # fan keeps one subscription (no second charge). Re-selecting the held
+      # tier is a no-op unless it was pending cancellation (then it resumes).
+      if existing.tier_id == tier.id and existing.canceled_at is None:
+        return _to_public(existing, tier, creator)
+      await billing.change_subscription_tier(
+        existing.stripe_subscription_id, user, tier, creator
+      )
+      # Optimistic local mirror; the subscription.updated webhook reconciles
+      # status/period. Matches how cancel stamps the row ahead of its webhook.
+      updated = await membership_service.retier(db, existing, tier.id)
+      return _to_public(updated, tier, creator)
+
+    # New paid subscription: hand off to Stripe Checkout. Ensure the fan has a
+    # Customer (created once, then reused), then return the hosted URL for the
+    # client to redirect to. The membership is created by the webhook once
+    # payment completes.
     if user.stripe_customer_id is None:
       customer_id = await billing.create_customer(user)
       user = await user_service.attach_stripe_customer(db, user, customer_id)
     checkout_url = await billing.create_subscription_checkout(user, tier, creator)
     return CheckoutSession(checkout_url=checkout_url)
+
+  # Free tier. Switching off a live paid subscription isn't a tier change — the
+  # fan cancels first (keeping access until period end), then joins free once it
+  # lapses. Blocking here keeps "stop paying" on the one correct cancel path.
+  if has_live_subscription:
+    raise HTTPException(
+      status_code=status.HTTP_409_CONFLICT,
+      detail="Cancel your membership to move to the free tier.",
+    )
 
   membership, created = await membership_service.set_membership(
     db, user.id, creator.id, tier.id

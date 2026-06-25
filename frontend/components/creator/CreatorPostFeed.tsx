@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import JoinTierDialog, {
   type JoinVerb,
 } from "@/components/creator/JoinTierDialog";
+import MembershipChangeModal from "@/components/creator/MembershipChangeModal";
 import PostCard from "@/components/creator/PostCard";
 import { useJoinTier } from "@/lib/hooks/useJoinTier";
 import type { Post } from "@/types/post";
@@ -29,7 +30,7 @@ export default function CreatorPostFeed({
   tiers: Tier[];
   /** The creator to join when a CTA is clicked; null when signed out. */
   creatorId?: string | null;
-  /** The tier the viewer holds on this creator, if any. */
+  /** The tier the viewer holds on this creator, if any (active membership). */
   heldTierId?: string | null;
   /** Called after the viewer joins or changes tier, to refetch. */
   onMembershipChange?: () => void;
@@ -40,12 +41,21 @@ export default function CreatorPostFeed({
   // Signed-out viewers go sign in, then land back on this creator's page.
   const loginUrl = `/login?next=${encodeURIComponent(pathname)}`;
 
-  // Rank of the viewer's held tier, deciding Upgrade vs Downgrade labels.
-  const heldRank = tiers.find((tier) => tier.id === heldTierId)?.rank;
+  // The viewer's held tier — `heldTierId` is the active membership, so a paid
+  // held tier means a live subscription.
+  const heldTier = tiers.find((tier) => tier.id === heldTierId);
+  const heldRank = heldTier?.rank;
+  const holdsPaidSub = (heldTier?.price_cents ?? 0) > 0;
 
   function verbFor(tier: Tier): JoinVerb {
     if (heldRank === undefined) return "Join";
     return tier.rank > heldRank ? "Upgrade" : "Downgrade";
+  }
+
+  // A paid target redirects to Checkout only for a first-time subscription; an
+  // upgrade/downgrade from a live paid subscription is modified in place.
+  function willRedirect(tier: Tier): boolean {
+    return tier.price_cents > 0 && !holdsPaidSub;
   }
 
   if (posts.length === 0) {
@@ -75,8 +85,14 @@ export default function CreatorPostFeed({
         verb={join.confirming ? verbFor(join.confirming) : "Join"}
         pending={join.pending}
         error={join.error}
+        willRedirect={join.confirming ? willRedirect(join.confirming) : false}
         onConfirm={join.confirm}
         onClose={join.close}
+      />
+      <MembershipChangeModal
+        status={join.status}
+        tier={join.activeTier}
+        onDismiss={join.dismiss}
       />
     </div>
   );

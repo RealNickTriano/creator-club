@@ -26,8 +26,13 @@ from backend.tier.models import Tier
 from backend.user.models import User
 
 
-def _checkout_metadata(member: User, tier: Tier, creator: User) -> dict:
-  """Ids the webhook needs to map a completed Checkout back to our rows."""
+def _subscription_metadata(member: User, tier: Tier, creator: User) -> dict:
+  """Ids the webhook needs to map a Subscription back to our rows.
+
+  Set on both the Checkout-created Subscription and on an in-place tier change,
+  so :mod:`backend.webhooks` always provisions the membership onto the right
+  tier. ``tier_id`` is the one that moves when a fan changes tiers.
+  """
   return {
     "member_id": str(member.id),
     "creator_id": str(creator.id),
@@ -167,7 +172,7 @@ async def create_subscription_checkout(
     )
 
   client = get_stripe()
-  metadata = _checkout_metadata(member, tier, creator)
+  metadata = _subscription_metadata(member, tier, creator)
   base = settings.frontend_url.rstrip("/")
   creator_page = f"{base}/c/{creator.handle}"
 
@@ -185,6 +190,37 @@ async def create_subscription_checkout(
     }
   )
   return session.url
+
+
+async def change_subscription_tier(
+  subscription_id: str, member: User, tier: Tier, creator: User
+) -> None:
+  """Swap a live subscription onto a different (paid) tier's Price, in place.
+
+  Replaces the subscription's single item Price — Stripe prorates the change
+  onto the next invoice (``create_prorations``) — refreshes the linking
+  metadata so the resulting ``customer.subscription.updated`` webhook provisions
+  the *new* tier, and clears any pending period-end cancellation, since
+  re-tiering reactivates the subscription. No new Subscription is created, so the
+  fan is never double-billed.
+  """
+  if not tier.stripe_price_id:
+    raise RuntimeError(
+      f"Tier {tier.id} has no Stripe price; run the tier price sync first."
+    )
+
+  client = get_stripe()
+  subscription = await client.v1.subscriptions.retrieve_async(subscription_id)
+  item_id = subscription["items"]["data"][0]["id"]
+  await client.v1.subscriptions.update_async(
+    subscription_id,
+    {
+      "items": [{"id": item_id, "price": tier.stripe_price_id}],
+      "proration_behavior": "create_prorations",
+      "cancel_at_period_end": False,
+      "metadata": _subscription_metadata(member, tier, creator),
+    },
+  )
 
 
 async def create_billing_portal_session(
