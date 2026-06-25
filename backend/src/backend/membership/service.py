@@ -9,11 +9,16 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.entitlements import membership_is_active_now
 from backend.membership import repository
 from backend.membership.models import Membership
 from backend.tier.models import Tier
 from backend.user.models import User
+
+# Stripe subscription statuses where access has stopped — a membership in one of
+# these is "terminal". Shared with the webhook handler (which uses it to end the
+# period at ``ended_at``) and the atomic upsert (which lets a terminal status win
+# a same-second ordering tie), so every layer agrees on what "ended" means.
+ENDED_STATUSES = frozenset({"canceled", "unpaid", "incomplete_expired"})
 
 
 async def list_memberships_by_member(
@@ -104,7 +109,8 @@ async def provision_subscription(
   status: str,
   current_period_end: datetime | None,
   canceled_at: datetime | None,
-) -> Membership:
+  last_event_at: datetime | None = None,
+) -> Membership | None:
   """Upsert the membership backing a Stripe subscription (webhook-driven).
 
   This is the authority for *paid* memberships: it mirrors Stripe's state onto
@@ -114,29 +120,31 @@ async def provision_subscription(
   membership in place and is idempotent across the duplicate/retried events
   Stripe may deliver.
 
-  Events from a *superseded* subscription are ignored: if the row is currently
-  active on a different subscription id, a stray late event (e.g. from a
-  duplicate sub left by an earlier bug) must not clobber it.
+  The write is a single atomic upsert (see
+  :func:`backend.membership.repository.upsert_provisioned_membership`) so
+  concurrent webhook deliveries can't race. Two guards, enforced in the
+  statement, keep a stray event from corrupting the row:
+
+  * *Superseded subscription* — if the row is currently active on a **different**
+    subscription id, a late event (e.g. from a duplicate sub left by an earlier
+    bug) must not clobber it.
+  * *Out-of-order delivery* — ``last_event_at`` (the event's ``created`` time) is
+    a monotonic marker: an event older than the last one applied is ignored, so a
+    redelivered or reordered event can't truncate or resurrect access. On a
+    same-second tie a terminal status wins.
   """
-  membership = await repository.get_membership_by_member_and_creator(
-    session, member_id, creator_id
+  return await repository.upsert_provisioned_membership(
+    session,
+    member_id=member_id,
+    creator_id=creator_id,
+    tier_id=tier_id,
+    stripe_subscription_id=stripe_subscription_id,
+    status=status,
+    current_period_end=current_period_end,
+    canceled_at=canceled_at,
+    last_event_at=last_event_at,
+    ended_statuses=ENDED_STATUSES,
   )
-  if (
-    membership is not None
-    and membership.stripe_subscription_id not in (None, stripe_subscription_id)
-    and membership_is_active_now(membership.current_period_end)
-  ):
-    return membership
-  if membership is None:
-    membership = await repository.create_membership(
-      session, member_id, creator_id, tier_id
-    )
-  membership.tier_id = tier_id
-  membership.stripe_subscription_id = stripe_subscription_id
-  membership.status = status
-  membership.current_period_end = current_period_end
-  membership.canceled_at = canceled_at
-  return await repository.update_membership(session, membership)
 
 
 async def mark_canceled(

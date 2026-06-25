@@ -33,8 +33,9 @@ _SUBSCRIPTION_EVENTS = {
 }
 
 # Statuses where the subscription has stopped granting access; for these we end
-# the period at ``ended_at`` so the membership lapses immediately.
-_ENDED_STATUSES = {"canceled", "unpaid", "incomplete_expired"}
+# the period at ``ended_at`` so the membership lapses immediately. Owned by the
+# membership service so both layers agree on what "ended" means.
+_ENDED_STATUSES = membership_service.ENDED_STATUSES
 
 _METADATA_KEYS = ("member_id", "creator_id", "tier_id")
 
@@ -47,6 +48,9 @@ async def handle_event(session: AsyncSession, event: object) -> None:
   """
   event_type = event["type"]
   obj = event["data"]["object"]
+  # The event's own creation time orders events for a subscription: Stripe gives
+  # no delivery-order guarantee, so we pass it down as a monotonic marker.
+  event_at = _to_datetime(getattr(event, "created", None))
 
   if event_type == "checkout.session.completed":
     # The session carries the new subscription's id; fetch the Subscription
@@ -54,18 +58,22 @@ async def handle_event(session: AsyncSession, event: object) -> None:
     subscription_id = getattr(obj, "subscription", None)
     if subscription_id:
       subscription = await billing.get_subscription(subscription_id)
-      await _provision(session, subscription)
+      await _provision(session, subscription, event_at)
   elif event_type in _SUBSCRIPTION_EVENTS:
-    await _provision(session, obj)
+    await _provision(session, obj, event_at)
   else:
     logger.debug("Stripe webhook: ignoring event type %s", event_type)
 
 
-async def _provision(session: AsyncSession, subscription: object) -> Membership | None:
+async def _provision(
+  session: AsyncSession, subscription: object, event_at: datetime | None
+) -> Membership | None:
   """Mirror a Stripe Subscription onto its membership row.
 
-  Returns the membership, or ``None`` when the subscription lacks the linking
-  metadata we set at checkout (nothing we can map it to).
+  ``event_at`` is the triggering event's ``created`` time, used downstream as
+  the monotonic ordering marker. Returns the membership, or ``None`` when the
+  subscription lacks the linking metadata we set at checkout (nothing we can map
+  it to).
   """
   ids = _membership_ids(subscription)
   if ids is None:
@@ -90,6 +98,7 @@ async def _provision(session: AsyncSession, subscription: object) -> Membership 
     status=status,
     current_period_end=current_period_end,
     canceled_at=_to_datetime(getattr(subscription, "canceled_at", None)),
+    last_event_at=event_at,
   )
 
 

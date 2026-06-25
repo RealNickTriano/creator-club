@@ -9,6 +9,7 @@ needs a signing secret.
 
 import time
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 import stripe
@@ -26,6 +27,11 @@ from backend.user.models import User
 from backend.webhooks import service as webhook_service
 
 ONE_MONTH = 30 * 24 * 3600
+
+
+def _to_dt(epoch: int) -> datetime:
+  """Match how the service stores Stripe timestamps (tz-aware UTC)."""
+  return datetime.fromtimestamp(epoch, tz=UTC)
 
 
 async def _create_user(db_session: AsyncSession) -> User:
@@ -84,10 +90,13 @@ def _subscription(
   )
 
 
-def _event(event_type: str, obj: StripeObject) -> StripeObject:
-  return StripeObject.construct_from(
-    {"id": "evt_test", "type": event_type, "data": {"object": obj}}, "sk_test"
-  )
+def _event(
+  event_type: str, obj: StripeObject, created: int | None = None
+) -> StripeObject:
+  payload: dict = {"id": "evt_test", "type": event_type, "data": {"object": obj}}
+  if created is not None:
+    payload["created"] = created
+  return StripeObject.construct_from(payload, "sk_test")
 
 
 async def _membership(db_session: AsyncSession, member: User, creator: User):
@@ -313,6 +322,138 @@ async def test_new_subscription_takes_over_lapsed_membership(
   assert membership is not None
   assert membership.stripe_subscription_id == "sub_new"
   assert membership_is_active_now(membership.current_period_end) is True
+
+
+async def test_out_of_order_event_does_not_truncate_access(
+  db_session: AsyncSession,
+) -> None:
+  """A late, older renewal must not roll current_period_end backwards.
+
+  Stripe gives no delivery-order guarantee. We apply a renewal (period far in
+  the future), then deliver an *older* event (earlier `created`, nearer period
+  end). The monotonic guard must reject the stale one.
+  """
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_paid_tier(db_session, creator)
+
+  base = int(time.time())
+  far_end = base + 2 * ONE_MONTH
+  near_end = base + ONE_MONTH
+
+  # Newer event (created later) carrying the further period end.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, tier, period_end=far_end),
+      created=base + 100,
+    ),
+  )
+  # Older event (created earlier) arrives afterwards — must be ignored.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(member, creator, tier, period_end=near_end),
+      created=base + 50,
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  # The further (newer) period survived; the stale event did not truncate it.
+  assert membership.current_period_end == _to_dt(far_end)
+
+
+async def test_stale_active_event_does_not_resurrect_canceled(
+  db_session: AsyncSession,
+) -> None:
+  """An old `active` update arriving after a cancel must not revive access."""
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_paid_tier(db_session, creator)
+
+  base = int(time.time())
+
+  # Cancellation lands (newer event): subscription ended in the past.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.deleted",
+      _subscription(
+        member,
+        creator,
+        tier,
+        status="canceled",
+        canceled_at=base - 5,
+        ended_at=base - 5,
+      ),
+      created=base + 100,
+    ),
+  )
+  # A stale `active` update (older `created`) is delivered late — must be ignored.
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(
+        member, creator, tier, status="active", period_end=base + ONE_MONTH
+      ),
+      created=base + 50,
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  assert membership.status == "canceled"
+  assert membership_is_active_now(membership.current_period_end) is False
+
+
+async def test_same_second_terminal_event_wins(
+  db_session: AsyncSession,
+) -> None:
+  """When a cancel and an update share a `created` second, the cancel sticks.
+
+  `created` is unix seconds, so two changes can tie. Delivering the non-terminal
+  `update` *after* the terminal `delete` (same second) must not reopen access.
+  """
+  member = await _create_user(db_session)
+  creator = await _create_user(db_session)
+  tier = await _create_paid_tier(db_session, creator)
+
+  base = int(time.time())
+
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.deleted",
+      _subscription(
+        member,
+        creator,
+        tier,
+        status="canceled",
+        canceled_at=base - 5,
+        ended_at=base - 5,
+      ),
+      created=base,
+    ),
+  )
+  await webhook_service.handle_event(
+    db_session,
+    _event(
+      "customer.subscription.updated",
+      _subscription(
+        member, creator, tier, status="active", period_end=base + ONE_MONTH
+      ),
+      created=base,  # same second as the cancel
+    ),
+  )
+
+  membership = await _membership(db_session, member, creator)
+  assert membership is not None
+  assert membership.status == "canceled"
+  assert membership_is_active_now(membership.current_period_end) is False
 
 
 def test_webhook_rejects_bad_signature(

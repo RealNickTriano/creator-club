@@ -60,3 +60,9 @@ class Membership(Base):
     String(255), unique=True
   )
   status: Mapped[str | None] = mapped_column(String(40))
+  # The ``created`` time of the most recent Stripe event applied to this row.
+  # Stripe gives no delivery-order guarantee, so the webhook handler uses this
+  # as a monotonic marker: an event older than what we've already applied is
+  # ignored, which keeps a late/redelivered event from truncating or resurrecting
+  # access. NULL until the first webhook stamps it. See webhook-reliability-review.html.
+  last_event_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
