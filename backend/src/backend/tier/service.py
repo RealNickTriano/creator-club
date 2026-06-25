@@ -12,6 +12,7 @@ from backend import billing
 from backend.tier import repository
 from backend.tier.models import Tier
 from backend.tier.schemas import NewTier, UpdateTier
+from backend.user import service as user_service
 
 
 async def create_tier(
@@ -23,7 +24,8 @@ async def create_tier(
   resulting ids are persisted. Free tiers carry no Stripe objects.
   """
   tier = await repository.create_tier(session, user_id, new_tier)
-  if await billing.sync_tier_pricing(tier):
+  creator = await user_service.get_user_by_id(session, user_id)
+  if creator and await billing.sync_tier_pricing(tier, creator):
     tier = await repository.update_tier(session, tier)
   return tier
 
@@ -67,9 +69,11 @@ async def update_tier(
   unsynced_paid = tier.price_cents > 0 and old_price_id is None
 
   if price_changed or display_changed or unsynced_paid:
+    creator = await user_service.get_user_by_id(session, tier.user_id)
     if price_changed:
       tier.stripe_price_id = None  # immutable Price → create a fresh one
-    await billing.sync_tier_pricing(tier)
+    if creator:
+      await billing.sync_tier_pricing(tier, creator)
     if price_changed and old_price_id:
       await billing.archive_price(old_price_id)
 

@@ -57,7 +57,7 @@ def stub_stripe_billing(monkeypatch: pytest.MonkeyPatch) -> None:
   calls. A test that wants to assert real billing behavior can re-patch them.
   """
 
-  async def _no_sync(tier: object) -> bool:
+  async def _no_sync(tier: object, creator: object) -> bool:
     return False
 
   async def _no_archive(price_id: str) -> None:

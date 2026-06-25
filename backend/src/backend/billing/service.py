@@ -35,12 +35,39 @@ def _checkout_metadata(member: User, tier: Tier, creator: User) -> dict:
   }
 
 
-def _product_params(tier: Tier) -> dict:
-  """Stripe Product fields mirrored from the tier (description only if set)."""
-  params: dict = {"name": tier.name, "metadata": {"tier_id": str(tier.id)}}
-  if tier.description:
-    params["description"] = tier.description
-  return params
+def _creator_label(creator: User) -> str:
+  """How the creator is named in customer-facing Stripe text.
+
+  Mirrors the "name shown to other users" fallback (display → personal → Google
+  name), then the ``@handle``, and only "Creator" as a last resort — so a
+  receipt or Checkout line never reads as a bare, anonymous tier.
+  """
+  name = creator.display_name or creator.personal_name or creator.google_name
+  if name:
+    return name
+  if creator.handle:
+    return f"@{creator.handle}"
+  return "Creator"
+
+
+def _product_params(tier: Tier, creator: User) -> dict:
+  """Stripe Product fields for a tier — named for *who* and *what* it is.
+
+  The Product name is what the buyer sees on Checkout, on their receipt/invoice
+  and in the customer portal (and what we see in the Dashboard), so it carries
+  the creator and the word "membership" rather than a bare ``tier.name`` that
+  collides across every creator's "Gold". The description falls back to a
+  generated line when the tier sets none, since it surfaces in those places too.
+  """
+  label = _creator_label(creator)
+  description = tier.description or (
+    f"Monthly {tier.name} membership for {label} on Creator Club."
+  )
+  return {
+    "name": f"{label} – {tier.name} membership",
+    "description": description,
+    "metadata": {"tier_id": str(tier.id), "creator_id": str(creator.id)},
+  }
 
 
 def _price_params(tier: Tier) -> dict:
@@ -54,13 +81,14 @@ def _price_params(tier: Tier) -> dict:
   }
 
 
-async def sync_tier_pricing(tier: Tier) -> bool:
+async def sync_tier_pricing(tier: Tier, creator: User) -> bool:
   """Ensure a paid tier has a Stripe Product + active recurring Price.
 
   Creates the Product and/or Price when their ids are missing, and keeps the
-  Product's display fields in sync otherwise. A missing ``stripe_price_id``
-  always means "create a Price at the current ``price_cents``" — to *reprice*,
-  the caller nulls ``stripe_price_id`` first and archives the old one (see
+  Product's display fields in sync otherwise. ``creator`` names the Product
+  (see :func:`_product_params`). A missing ``stripe_price_id`` always means
+  "create a Price at the current ``price_cents``" — to *reprice*, the caller
+  nulls ``stripe_price_id`` first and archives the old one (see
   :func:`archive_price`), since Prices are immutable.
 
   Free tiers (``price_cents == 0``) carry no Stripe objects, so this is a no-op.
@@ -74,12 +102,14 @@ async def sync_tier_pricing(tier: Tier) -> bool:
   changed = False
 
   if tier.stripe_product_id is None:
-    product = await client.v1.products.create_async(_product_params(tier))
+    product = await client.v1.products.create_async(
+      _product_params(tier, creator)
+    )
     tier.stripe_product_id = product.id
     changed = True
   else:
     await client.v1.products.update_async(
-      tier.stripe_product_id, _product_params(tier)
+      tier.stripe_product_id, _product_params(tier, creator)
     )
 
   if tier.stripe_price_id is None:
