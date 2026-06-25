@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/auth/UserAvatar";
+import ManagePaymentMethodsButton from "@/components/billing/ManagePaymentMethodsButton";
 import BrandLoader from "@/components/brand/BrandLoader";
 import BillingSubscriptionModal from "@/components/creator/BillingSubscriptionModal";
 import SubscriptionStatusBadge from "@/components/creator/SubscriptionStatusBadge";
@@ -60,11 +61,14 @@ export default function BillingPage() {
   return (
     <HomeShell user={user}>
       <div className="mx-auto max-w-3xl">
-        <header>
-          <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
-          <p className="text-muted mt-1 text-sm">
-            Your subscriptions — select one to upgrade, downgrade, or cancel.
-          </p>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
+            <p className="text-muted mt-1 text-sm">
+              Your subscriptions — select one to upgrade, downgrade, or cancel.
+            </p>
+          </div>
+          {subscriptions.length > 0 && <ManagePaymentMethodsButton />}
         </header>
 
         <section className="mt-8">
