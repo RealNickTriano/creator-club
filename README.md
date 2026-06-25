@@ -7,14 +7,22 @@ Memberships):
 > **Given this fan and this post, can they see it?**
 
 A creator publishes posts. Some are free, some are reserved for paying members
-at a particular tier. A user subscribes to another user at a given tier. The job
-of this service is to make a single, authoritative entitlement decision — for
-any viewer/post pair — and to drive a creator page where content visibly
-**locks and unlocks** based on who is logged in.
+at a particular tier. A fan pays to subscribe to a creator at a given tier, and
+that paid membership is what unlocks the locked content. The job of this service
+is to make a single, authoritative entitlement decision for any viewer/post pair,
+and to drive a creator page where content visibly **locks and unlocks** based on
+who is logged in and what they pay for.
+
+Payments are central rather than an afterthought. Stripe is the system of record
+for who is subscribed, at what tier, and until when, so the access decision is
+always grounded in real billing state instead of a guess the client makes. The
+service integrates Stripe Checkout for upgrades and downgrades, and treats Stripe
+webhooks as the only writer of the fields that govern access, which keeps money
+and visibility in sync.
 
 There is one kind of account: a **user**. Any user can act as a *creator* (by
-defining tiers and publishing posts) and as a *fan* (by holding a membership to
-another user). "Creator" and "fan" are roles a user plays, not separate records.
+defining tiers and publishing posts) and as a *fan* (by holding a paid membership
+to another user). "Creator" and "fan" are roles a user plays, not separate records.
 
 <img width="1440" height="1166" alt="creator-club-thumbnail" src="https://github.com/user-attachments/assets/c877b3df-3ae5-4e00-91cc-b0d71267224d" />
 
